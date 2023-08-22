@@ -23,15 +23,15 @@ pipeline {
         stage('Unit tests') {
             steps {
                 script {
-                    sh "yarn install"
-                    sh "yarn test"
+                    sh "npm install -c"
+                    sh "npm run test"
                 }
             }
         }
         stage('e2e tests') {
             steps {
                 script {
-                    sh "yarn test:e2e"
+                    sh "npm run test:e2e"
                 }
             }
         }
