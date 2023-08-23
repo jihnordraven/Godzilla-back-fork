@@ -7,7 +7,6 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "build:prodaction": "nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -19,7 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./apps/godzilla-back/test/jest-e2e.json",
-    "build:godzilla-back": "nest build godzilla-back>",
+    "build:godzilla-back": "nest build godzilla-back",
     "start:godzilla-back": "node dist/apps/godzilla-back/main",
     "start:dev:godzilla-back": "nest start godzilla-back --watch"
   },
