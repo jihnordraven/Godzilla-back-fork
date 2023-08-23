@@ -27,7 +27,7 @@ RUN npm install -c
 # Bundle app source code
 COPY --chown=node . .
 
-RUN npm build:${SERVICE}
+RUN npm run build:${SERVICE}
 
 # Bind to all network interfaces so that it can be mapped to the host OS
 
