@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CONFIG } from '../config/config';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -16,7 +17,9 @@ describe('AppController', () => {
 
   describe('root', () => {
     it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe(`Hello World! ${process.env.PORT}`);
+      expect(appController.getHello()).toBe(
+        `Start server on ${CONFIG.PORT} port`,
+      );
     });
   });
 });
