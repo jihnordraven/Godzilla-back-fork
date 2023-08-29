@@ -1,10 +1,22 @@
 import { Module } from '@nestjs/common';
-import { AuthController } from './auth.controller';
 import { CqrsModule } from '@nestjs/cqrs';
+import { AuthController } from './auth.controller';
+import { CheckedConfirmCode, CheckedEmailToBase } from './class-validators';
+import { AuthService } from './application/auth.service';
+import { AuthRepository } from './repository/auth.repository';
+import { CheckedUniqueUsername } from './class-validators/checkedUniqueUsername.class-validators';
+import { CheckedUniqueEmail } from './class-validators/checkedUniqueEmail.class-validators';
+
+const validators = [
+  CheckedEmailToBase,
+  CheckedConfirmCode,
+  CheckedUniqueUsername,
+  CheckedUniqueEmail,
+];
 
 @Module({
   imports: [CqrsModule],
-  controllers: [],
-  providers: [AuthController],
+  controllers: [AuthController],
+  providers: [AuthService, AuthRepository, ...validators],
 })
 export class AuthModule {}

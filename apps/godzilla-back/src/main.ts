@@ -22,7 +22,7 @@ async function appLoader() {
   if (CONFIG.DEPLOY === 'TEST') {
     const options = swaggerConfig.development;
     const document = SwaggerModule.createDocument(app, options);
-    SwaggerModule.setup('testing', app, document);
+    SwaggerModule.setup('api/v1/testing', app, document);
   }
 
   await app.listen(CONFIG.PORT);
