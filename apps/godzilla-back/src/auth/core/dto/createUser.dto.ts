@@ -1,19 +1,23 @@
-import { TrimDecorator } from '../../../../../library/helpers';
-import { IsNotEmpty, Length, Matches, Validate } from 'class-validator';
+import { TrimDecorator } from '../../../../../../library/helpers';
+import {
+  IsNotEmpty,
+  IsString,
+  Length,
+  Matches,
+  Validate,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { CheckedUniqueUsername } from '../class-validators/checkedUniqueUsername.class-validators';
-import { CheckedUniqueEmail } from '../class-validators/checkedUniqueEmail.class-validators';
-
-type CreateUserType = {
-  username: string;
-  email: string;
-  password: string;
-};
+import {
+  CheckedUniqueEmail,
+  CheckedUniqueUsername,
+} from '../../class-validators';
+import { CreateUserType } from '../models';
 
 export class CreateUserDto implements CreateUserType {
   @Validate(CheckedUniqueUsername)
   @TrimDecorator()
-  @Matches(/^[A-Za-z0-9.\-!@#$%^&*()_+=<>?]+$/)
+  @IsString()
+  @Matches(/^[1-9A-Za-z.\-_]+$/)
   @Length(6, 30)
   @IsNotEmpty()
   @ApiProperty({
@@ -21,13 +25,14 @@ export class CreateUserDto implements CreateUserType {
     type: String,
     minLength: 6,
     maxLength: 30,
-    pattern: '^[A-Za-z0-9.\\-!@#$%^&*()_+=<>?]+$',
+    pattern: '^[1-9A-Za-z.\\-_]+$',
     nullable: false,
   })
   readonly username: string;
 
   @Validate(CheckedUniqueEmail)
   @TrimDecorator()
+  @IsString()
   @Matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)
   @IsNotEmpty()
   @ApiProperty({
@@ -39,9 +44,8 @@ export class CreateUserDto implements CreateUserType {
   readonly email: string;
 
   @TrimDecorator()
-  @Matches(
-    /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!\"#$%&'()*+,\-./:;<=>?@[\]^_`{|}~])[0-9A-Za-z!\"#$%&'()*+,\-./:;<=>?@[\]^_`{|}~]+$/,
-  )
+  @Matches(/^[1-9a-zA-Z!"#$%&'()*+,\-.\/:;<=>?@\[\]^_`{\|}~]+$/)
+  @IsString()
   @Length(6, 20)
   @IsNotEmpty()
   @ApiProperty({
@@ -49,8 +53,7 @@ export class CreateUserDto implements CreateUserType {
     type: String,
     minLength: 6,
     maxLength: 20,
-    pattern:
-      '^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!\\"#$%&\'()*+,\\-./:;<=>?@[\\]^_`{|}~])[0-9A-Za-z!\\"#$%&\'()*+,\\-./:;<=>?@[\\]^_`{|}~]+$',
+    pattern: '^[1-9a-zA-Z!"#$%&\'()*+,\\-.\\/:;<=>?@\\[\\]^_`{\\|}~]+$',
     nullable: false,
   })
   readonly password: string;

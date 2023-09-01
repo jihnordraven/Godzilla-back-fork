@@ -1,5 +1,6 @@
 export enum AllTablesEnum {
   User = 'User',
+  ConfirmUser = 'ConfirmUser',
   Profile = 'Profile',
   Post = 'Post',
   Comment = 'Comment',

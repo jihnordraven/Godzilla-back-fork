@@ -1,5 +1,4 @@
 import { ConfigModule } from '@nestjs/config';
-import { DocumentBuilder } from '@nestjs/swagger';
 
 export const CONFIG = {
   START_MODULE: ConfigModule.forRoot(),
@@ -11,12 +10,4 @@ export const CONFIG = {
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
   EXPIRES_ACCESS: process.env.EXPIRES_ACCESS,
   EXPIRES_REFRESH: process.env.EXPIRES_REFRESH,
-};
-
-export const swaggerConfig = {
-  development: new DocumentBuilder()
-    .setTitle('Godzilla-back')
-    .setDescription('The godzilla-back API description')
-    .setVersion('1.0')
-    .build(),
 };

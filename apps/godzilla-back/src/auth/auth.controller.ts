@@ -1,8 +1,27 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
+import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
-import { PassRecoveryDto } from './dto/passRecovery.dto';
-import { CreateUserDto, NewPassUpdateDto } from './dto';
+import { CreateUserDto, NewPassUpdateDto, PassRecoveryDto } from './core/dto';
+import {
+  SwaggerToAuthorization,
+  SwaggerToLogout,
+  SwaggerToNewPassword,
+  SwaggerToPasswordEmailResending,
+  SwaggerToPasswordRecovery,
+  SwaggerToRefreshToken,
+  SwaggerToRegistration,
+  SwaggerToRegistrationEmailResending,
+} from './swagger';
+import { EmailResendingDto } from './core/dto/passRecover222y.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -10,65 +29,70 @@ export class AuthController {
   constructor(private readonly commandBus: CommandBus) {}
 
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
-    description:
-      'A new activation code has been successfully sent to your email',
-  })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad request' })
-  @Post('password-recovery')
-  async userCreateNewPass(@Body() email: PassRecoveryDto) {
-    console.log(email);
+  @SwaggerToRegistration()
+  @Post('registration')
+  async userRegistration(@Body() createUser: CreateUserDto) {
+    console.log(createUser.username, createUser.email, createUser.password);
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
-    description: 'If code is valid and new password is accepted',
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description:
-      'If the inputModel has incorrect value (for incorrect password length) or RecoveryCode is incorrect or expired',
-  })
+  @SwaggerToRegistrationEmailResending()
+  @Post('registration-email-resending')
+  async userRegistrationResending(@Body() emailResending: EmailResendingDto) {
+    console.log(emailResending);
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiExcludeEndpoint()
+  @Get('registration-confirmation/:codeActivate') //Срабатывает автоматически,
+  // проверяет код активации, если он валиден перенаправляет на страницу Логинизации
+  // если не валиден отдается userId и пользователь перенаправляется
+  // на страницу Отправить код активации ещё раз
+  async userRegistrationConfirm(
+    @Param('codeActivate', new ParseUUIDPipe()) code: string,
+  ) {
+    console.log(code);
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @SwaggerToPasswordRecovery()
+  @Post('password-recovery')
+  async userCreateNewPass(@Body() PassRecovery: PassRecoveryDto) {
+    console.log(PassRecovery.email);
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @SwaggerToPasswordEmailResending()
+  @Post('password-email-resending')
+  async passwordEmailResending() {}
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiExcludeEndpoint()
+  @Get('new-password-confirmation') //Срабатывает автоматически,
+  // проверяет код активации, если он валиден перенаправляет на страницу ввода
+  // нового пароля, если не валиден отдается userId и пользователь перенаправляется
+  // на страницу Отправить код активации ещё раз
+  async newPasswordConfirm() {}
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @SwaggerToNewPassword()
   @Post('new-password')
-  async userUpdateNewPass(@Body() newPassUpdateDto: NewPassUpdateDto) {
-    console.log(newPassUpdateDto);
+  async userUpdateNewPass(@Body() newPassUpdate: NewPassUpdateDto) {
+    console.log(newPassUpdate);
   }
 
   @HttpCode(HttpStatus.OK)
+  @SwaggerToAuthorization()
   @Post('login')
   async userAuthorization() {}
 
   @HttpCode(HttpStatus.OK)
-  @Post('refresh-token')
+  @SwaggerToRefreshToken()
+  @Get('refresh-token')
   async userRefreshToken() {}
 
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Post('registration-confirmation')
-  async userRegistrationConfirm() {}
-
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
-    description:
-      'Input data is accepted. Email with confirmation code will be send to passed email address',
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description:
-      'If the inputModel has incorrect values (in particular if the user with the given email or password already exists)',
-  })
-  @Post('registration')
-  async userRegistration(@Body() createUserDto: CreateUserDto) {
-    console.log(createUserDto);
-  }
-
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Post('registration-email-resending')
-  async userRegistrationResending() {}
-
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @SwaggerToLogout()
   @Post('logout')
   async userLogout() {}
 }

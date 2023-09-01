@@ -1,10 +1,11 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { CONFIG } from '../config/config';
+import { CONFIG } from '../../../library/config/config';
 import { AllTablesEnum } from '../../../library/models';
-import { prisma } from './main';
+import { PrismaService } from '../../../library/prisma/prisma.service';
 
 @Injectable()
 export class AppService {
+  constructor(protected readonly prisma: PrismaService) {}
   async getHello(): Promise<string> {
     return await `Start server on ${CONFIG.PORT} port`;
   }
@@ -12,8 +13,8 @@ export class AppService {
   async deleteAll() {
     if (CONFIG.DEPLOY === 'TEST') {
       for (const table of Object.values(AllTablesEnum)) {
-        if (prisma[table]) {
-          await prisma[table].deleteMany();
+        if (this.prisma[table]) {
+          await this.prisma[table].deleteMany();
         }
       }
     } else {

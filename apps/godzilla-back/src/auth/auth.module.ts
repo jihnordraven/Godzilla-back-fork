@@ -6,6 +6,7 @@ import { AuthService } from './application/auth.service';
 import { AuthRepository } from './repository/auth.repository';
 import { CheckedUniqueUsername } from './class-validators/checkedUniqueUsername.class-validators';
 import { CheckedUniqueEmail } from './class-validators/checkedUniqueEmail.class-validators';
+import { PrismaModule } from '../../../../library/prisma/prisma.module';
 
 const validators = [
   CheckedEmailToBase,
@@ -15,7 +16,7 @@ const validators = [
 ];
 
 @Module({
-  imports: [CqrsModule],
+  imports: [CqrsModule, PrismaModule],
   controllers: [AuthController],
   providers: [AuthService, AuthRepository, ...validators],
 })

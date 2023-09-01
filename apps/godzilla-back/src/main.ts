@@ -1,10 +1,11 @@
-import { CONFIG, swaggerConfig } from '../config/config';
+import { CONFIG } from '../../../library/config/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import { useContainer } from 'class-validator';
 import { PrismaClient } from '@prisma/client';
 import { SwaggerModule } from '@nestjs/swagger';
+import { swaggerConfig } from '../../../library/swagger/config.swagger';
 
 export const prisma = new PrismaClient();
 

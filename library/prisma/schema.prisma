@@ -9,26 +9,33 @@ datasource db {
 }
 
 model User {
-  id                   String            @id @default(uuid())
-  userName             String            @unique(map: "User.login_unique")
-  email                String            @unique(map: "User.email_unique")
-  hushPass             String
-  createdAt            DateTime          @default(now())
-  gitHubInf            String?
-  googleInf            String?
-  isConfirmed          Boolean           @default(false)
+  id               String            @id @default(uuid())
+  userName         String            @unique(map: "User.login_unique")
+  email            String            @unique(map: "User.email_unique")
+  hushPass         String
+  createdAt        DateTime          @default(now())
+  gitHubInf        String?
+  googleInf        String?
+  isBanned         Boolean           @default(false)
+  banReason        String?
+  isPremium        Boolean           @default(false)
+  isDeleted        Boolean           @default(false)
+  Profile          Profile?
+  Post             Post?
+  Comment          Comment?
+  Sessions         Sessions?
+  LikesInfoPost    LikesInfoPost?
+  LikesInfoComment LikesInfoComment?
+  ConfirmUser      ConfirmUser?
+}
+
+model ConfirmUser {
+  id                   String  @id @default(uuid())
+  isConfirmed          Boolean @default(false)
   codeActivated        String?
   codeActivatedExpired String?
-  isBanned             Boolean           @default(false)
-  banReason            String?
-  isPremium            Boolean           @default(false)
-  isDeleted            Boolean           @default(false)
-  Profile              Profile?
-  Post                 Post?
-  Comment              Comment?
-  Sessions             Sessions?
-  LikesInfoPost        LikesInfoPost?
-  LikesInfoComment     LikesInfoComment?
+  userOwnerId          String  @unique()
+  user                 User    @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
 }
 
 model Profile {
