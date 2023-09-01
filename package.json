@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./apps/godzilla-back/test/jest-e2e.json",
     "build:godzilla-back": "nest build godzilla-back",
     "start:godzilla-back": "node dist/apps/godzilla-back/main",
-    "start:dev:godzilla-back": "nest start godzilla-back --watch"
+    "start:dev:godzilla-back": "nest start godzilla-back --watch",
+    "updatePrismaSchema": "npx prisma migrate dev --name init "
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -31,12 +32,15 @@
     "@nestjs/microservices": "^10.1.3",
     "@nestjs/passport": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^7.1.9",
+    "@prisma/client": "^5.2.0",
     "@types/passport-local": "^1.0.35",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "cookie-parser": "^1.4.6",
     "date-fns": "^2.30.0",
+    "dotenv": "^16.3.1",
     "nodemailer": "^6.9.4",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
@@ -92,5 +96,8 @@
     "roots": [
       "<rootDir>/apps/"
     ]
+  },
+  "prisma": {
+    "schema": "apps/godzilla-back/src/prisma/schema.prisma"
   }
 }
