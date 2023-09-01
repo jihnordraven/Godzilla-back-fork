@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./apps/godzilla-back/test/jest-e2e.json",
     "build:godzilla-back": "nest build godzilla-back",
     "start:godzilla-back": "node dist/apps/godzilla-back/main",
-    "start:dev:godzilla-back": "nest start godzilla-back --watch"
+    "start:dev:godzilla-back": "nest start godzilla-back --watch",
+    "updatePrismaSchema": "npx prisma migrate dev --name init "
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -95,5 +96,8 @@
     "roots": [
       "<rootDir>/apps/"
     ]
+  },
+  "prisma": {
+    "schema": "apps/godzilla-back/src/prisma/schema.prisma"
   }
 }

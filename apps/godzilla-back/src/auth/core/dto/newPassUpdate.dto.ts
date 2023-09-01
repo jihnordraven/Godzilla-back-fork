@@ -27,7 +27,7 @@ export class NewPassUpdateDto implements NewPassUpdateType {
   })
   readonly newPassword: string;
 
-  @Validate(CheckedConfirmCode)
+  //@Validate(CheckedConfirmCode)
   @TrimDecorator()
   @IsUUID()
   @IsString()

@@ -1,7 +1,7 @@
 import { ConfigModule } from '@nestjs/config';
 
 export const CONFIG = {
-  START_MODULE: ConfigModule.forRoot(),
+  START_MODULE: ConfigModule.forRoot({ isGlobal: true }),
   DEPLOY: process.env.DEPLOY,
   PORT: process.env.PORT,
   MAIL_URL_USER: process.env.MAIL_URL_USER,

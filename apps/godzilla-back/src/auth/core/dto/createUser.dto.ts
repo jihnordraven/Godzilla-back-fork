@@ -1,5 +1,6 @@
 import { TrimDecorator } from '../../../../../../library/helpers';
 import {
+  IsEmail,
   IsNotEmpty,
   IsString,
   Length,
@@ -14,10 +15,10 @@ import {
 import { CreateUserType } from '../models';
 
 export class CreateUserDto implements CreateUserType {
-  @Validate(CheckedUniqueUsername)
+  //@Validate(CheckedUniqueUsername)
   @TrimDecorator()
   @IsString()
-  @Matches(/^[1-9A-Za-z.\-_]+$/)
+  @Matches(/^[0-9A-Za-z.\-_]+$/)
   @Length(6, 30)
   @IsNotEmpty()
   @ApiProperty({
@@ -25,26 +26,27 @@ export class CreateUserDto implements CreateUserType {
     type: String,
     minLength: 6,
     maxLength: 30,
-    pattern: '^[1-9A-Za-z.\\-_]+$',
+    pattern: '^[0-9A-Za-z.\\-_]+$',
     nullable: false,
   })
   readonly username: string;
 
-  @Validate(CheckedUniqueEmail)
+  //@Validate(CheckedUniqueEmail)
   @TrimDecorator()
   @IsString()
-  @Matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)
+  @IsEmail()
   @IsNotEmpty()
   @ApiProperty({
     description: 'User email',
     type: String,
-    pattern: '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$',
     nullable: false,
   })
   readonly email: string;
 
   @TrimDecorator()
-  @Matches(/^[1-9a-zA-Z!"#$%&'()*+,\-.\/:;<=>?@\[\]^_`{\|}~]+$/)
+  @Matches(
+    /^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~])[A-Za-z0-9!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~]+$/,
+  )
   @IsString()
   @Length(6, 20)
   @IsNotEmpty()
@@ -53,7 +55,8 @@ export class CreateUserDto implements CreateUserType {
     type: String,
     minLength: 6,
     maxLength: 20,
-    pattern: '^[1-9a-zA-Z!"#$%&\'()*+,\\-.\\/:;<=>?@\\[\\]^_`{\\|}~]+$',
+    pattern:
+      '^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+$',
     nullable: false,
   })
   readonly password: string;

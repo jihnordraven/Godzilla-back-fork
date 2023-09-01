@@ -10,7 +10,7 @@ datasource db {
 
 model User {
   id               String            @id @default(uuid())
-  userName         String            @unique(map: "User.login_unique")
+  username         String            @unique(map: "User.login_unique")
   email            String            @unique(map: "User.email_unique")
   hushPass         String
   createdAt        DateTime          @default(now())

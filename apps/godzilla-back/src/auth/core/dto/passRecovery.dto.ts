@@ -1,14 +1,14 @@
-import { IsNotEmpty, IsString, Matches, Validate } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Validate } from 'class-validator';
 import { TrimDecorator } from '../../../../../../library/helpers';
 import { CheckedEmailToBase } from '../../class-validators';
 import { PassRecoveryType } from '../models';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PassRecoveryDto implements PassRecoveryType {
-  @Validate(CheckedEmailToBase)
+  //@Validate(CheckedEmailToBase)
   @TrimDecorator()
   @IsString()
-  @Matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)
+  @IsEmail()
   @ApiProperty({
     description: 'Email of registered user useremail@company.com',
     type: String,

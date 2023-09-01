@@ -4,13 +4,23 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Headers,
+  Ip,
   Param,
   ParseUUIDPipe,
   Post,
+  Res,
 } from '@nestjs/common';
 import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
-import { CreateUserDto, NewPassUpdateDto, PassRecoveryDto } from './core/dto';
+import { Response } from 'express';
+import {
+  CreateUserDto,
+  EmailResendingDto,
+  NewPassUpdateDto,
+  PassRecoveryDto,
+  PasswordEmailResendingDto,
+} from './core/dto';
 import {
   SwaggerToAuthorization,
   SwaggerToLogout,
@@ -20,8 +30,13 @@ import {
   SwaggerToRefreshToken,
   SwaggerToRegistration,
   SwaggerToRegistrationEmailResending,
-} from './swagger';
-import { EmailResendingDto } from './core/dto/passRecover222y.dto';
+} from '../../../../library/swagger/auth';
+import {
+  JwtAccessPayload,
+  JwtPayloadDecorator,
+  JwtRefreshPayload,
+  mockToken,
+} from '../../../../library/helpers';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -42,12 +57,12 @@ export class AuthController {
     console.log(emailResending);
   }
 
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiExcludeEndpoint()
   @Get('registration-confirmation/:codeActivate') //Срабатывает автоматически,
-  // проверяет код активации, если он валиден перенаправляет на страницу Логинизации
+  // проверяет код активации, если он валиден перенаправляет на страницу login
   // если не валиден отдается userId и пользователь перенаправляется
-  // на страницу Отправить код активации ещё раз
+  // на страницу registration-email-resending
   async userRegistrationConfirm(
     @Param('codeActivate', new ParseUUIDPipe()) code: string,
   ) {
@@ -64,15 +79,23 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @SwaggerToPasswordEmailResending()
   @Post('password-email-resending')
-  async passwordEmailResending() {}
+  async passwordEmailResending(
+    @Body() passwordEmailResending: PasswordEmailResendingDto,
+  ) {
+    console.log(passwordEmailResending);
+  }
 
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiExcludeEndpoint()
-  @Get('new-password-confirmation') //Срабатывает автоматически,
-  // проверяет код активации, если он валиден перенаправляет на страницу ввода
-  // нового пароля, если не валиден отдается userId и пользователь перенаправляется
-  // на страницу Отправить код активации ещё раз
-  async newPasswordConfirm() {}
+  @Get('new-password-confirmation/:codeActivate') //Срабатывает автоматически,
+  // проверяет код активации, если он валиден перенаправляет на страницу new-password,
+  // если не валиден отдается userId и пользователь перенаправляется
+  // на страницу password-email-resending
+  async newPasswordConfirm(
+    @Param('codeActivate', new ParseUUIDPipe()) code: string,
+  ) {
+    console.log(code);
+  }
 
   @HttpCode(HttpStatus.NO_CONTENT)
   @SwaggerToNewPassword()
@@ -84,15 +107,58 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @SwaggerToAuthorization()
   @Post('login')
-  async userAuthorization() {}
+  async userAuthorization(
+    //@JwtPayloadDecorator() jwtPayload: JwtAccessPayload,
+    @Ip() userIP: string,
+    @Headers('user-agent') nameDevice: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    console.log(userIP, nameDevice);
+
+    response.cookie('refreshToken', mockToken, {
+      httpOnly: true,
+      secure: true,
+    });
+
+    return {
+      accessToken: mockToken,
+      user: {
+        userId: 'f57aeded-6aac-4c7d-b298-1b7e4078184c',
+        username: 'ValeraGolova',
+        email: 'valeraGolova@gmail.com',
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
 
   @HttpCode(HttpStatus.OK)
   @SwaggerToRefreshToken()
   @Get('refresh-token')
-  async userRefreshToken() {}
+  async userRefreshToken(
+    // @JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
+    @Ip() userIP: string,
+    @Headers('user-agent') nameDevice: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    console.log(userIP, nameDevice);
+
+    response.cookie('refreshToken', mockToken, {
+      httpOnly: true,
+      secure: true,
+    });
+
+    return {
+      accessToken: mockToken,
+    };
+  }
 
   @HttpCode(HttpStatus.NO_CONTENT)
   @SwaggerToLogout()
   @Post('logout')
-  async userLogout() {}
+  async userLogout(
+    //@JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    await response.clearCookie('refreshToken');
+  }
 }

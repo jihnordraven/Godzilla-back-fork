@@ -1,5 +1,3 @@
-import { EmailResendingDto } from '../dto/passRecover222y.dto';
-
 export type CreateUserType = {
   username: string;
   email: string;
@@ -16,5 +14,9 @@ export type PassRecoveryType = {
 };
 
 export type EmailResendingType = {
+  userId: string;
+};
+
+export type PasswordEmailResendingType = {
   userId: string;
 };
