@@ -8,7 +8,7 @@ import { swaggerConfig } from '../../../library/swagger/config.swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { validatePipeOptions } from '../../../library/errors-handlers/validatePipeOptions';
 import { HttpExceptionFilter } from '../../../library/errors-handlers/http-exception.filter';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 
 export const prisma = new PrismaClient();
 
