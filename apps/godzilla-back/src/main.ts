@@ -1,7 +1,6 @@
 import { CONFIG } from './config/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as cookieParser from 'cookie-parser';
 import { useContainer } from 'class-validator';
 import { PrismaClient } from '@prisma/client';
 import { SwaggerModule } from '@nestjs/swagger';
@@ -9,6 +8,7 @@ import { swaggerConfig } from '../../../library/swagger/config.swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { validatePipeOptions } from '../../../library/errors-handlers/validatePipeOptions';
 import { HttpExceptionFilter } from '../../../library/errors-handlers/http-exception.filter';
+import * as cookieParser from 'cookie-parser';
 
 export const prisma = new PrismaClient();
 
