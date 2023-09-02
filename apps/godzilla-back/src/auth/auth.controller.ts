@@ -74,6 +74,7 @@ export class AuthController {
   @Post('password-recovery')
   async userCreateNewPass(@Body() PassRecovery: PassRecoveryDto) {
     console.log(PassRecovery.email);
+    console.log(PassRecovery.email);
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
