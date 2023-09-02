@@ -1,6 +1,9 @@
 # compiled output
 /dist
 /node_modules
+.gitignore
+apps/godzilla-back/src/prisma/.env
+.env
 
 # Logs
 logs
