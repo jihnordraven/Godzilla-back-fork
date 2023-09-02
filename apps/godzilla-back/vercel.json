@@ -2,5 +2,5 @@
   "version": 2,
   "name": "godzilla-back",
   "builds": [{ "src": "src/main.ts", "use": "@vercel/node" }],
-  "rewrites": [{"src": "/(.*)", "dest": "/api/v1/$1"}]
+  "rewrites": {"dest": "/api/v1/:path*"}
 }
