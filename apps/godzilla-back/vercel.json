@@ -2,11 +2,5 @@
   "version": 2,
   "name": "godzilla-back",
   "builds": [{ "src": "src/main.ts", "use": "@vercel/node" }],
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/api/v1" ,
-      "statusCode": 307
-    }
-  ]
+  "routes": [{ "src": "/api/v1/(.*)", "dest": "src/main.ts" }]
 }
