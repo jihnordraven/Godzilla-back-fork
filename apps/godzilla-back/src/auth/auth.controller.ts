@@ -37,6 +37,7 @@ import {
   JwtRefreshPayload,
   mockToken,
 } from '../../../../library/helpers';
+import { LoginResType } from './core/models';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -113,7 +114,7 @@ export class AuthController {
     @Ip() userIP: string,
     @Headers('user-agent') nameDevice: string,
     @Res({ passthrough: true }) response: Response,
-  ) {
+  ): Promise<LoginResType> {
     console.log(userIP, nameDevice);
 
     response.cookie('refreshToken', mockToken, {
