@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "prisma generate && nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -21,7 +21,8 @@
     "build:godzilla-back": "nest build godzilla-back",
     "start:godzilla-back": "node dist/apps/godzilla-back/main",
     "start:dev:godzilla-back": "nest start godzilla-back --watch",
-    "updatePrismaSchema": "npx prisma migrate dev --name init "
+    "updatePrismaSchema": "npx prisma migrate dev --name init ",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
