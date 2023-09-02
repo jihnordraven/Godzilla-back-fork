@@ -38,7 +38,7 @@ async function appLoader() {
     });
   }
 
-  await app.listen(CONFIG.PORT);
+  await app.listen(CONFIG.PORT || 3000);
 }
 
 async function bootstrap() {
