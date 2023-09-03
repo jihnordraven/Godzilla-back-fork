@@ -4,8 +4,7 @@ export type LoginResType = {
 };
 
 type userInfo = {
-  userId: string;
+  id: string;
   username: string;
   email: string;
-  createdAt: string;
 };

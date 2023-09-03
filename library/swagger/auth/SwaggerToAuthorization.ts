@@ -6,7 +6,7 @@ class UserInfoDto {
   @ApiProperty({
     description: 'User id',
   })
-  userId: string;
+  id: string;
 
   @ApiProperty({
     description: 'Username',
@@ -17,11 +17,6 @@ class UserInfoDto {
     description: 'Email',
   })
   email: string;
-
-  @ApiProperty({
-    description: 'Creation date',
-  })
-  createdAt: string;
 }
 
 class LoginResDto implements LoginResType {

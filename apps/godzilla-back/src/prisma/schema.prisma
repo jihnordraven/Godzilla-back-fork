@@ -9,68 +9,66 @@ datasource db {
 }
 
 model User {
-  id               String            @id @default(uuid())
-  username         String            @unique(map: "User.login_unique")
-  email            String            @unique(map: "User.email_unique")
+  id               String             @id @default(uuid())
+  username         String             @unique(map: "User.login_unique")
+  email            String             @unique(map: "User.email_unique")
   hushPass         String
-  createdAt        DateTime          @default(now())
+  createdAt        DateTime           @default(now())
   gitHubInf        String?
   googleInf        String?
-  isBanned         Boolean           @default(false)
+  isBanned         Boolean            @default(false)
   banReason        String?
-  isPremium        Boolean           @default(false)
-  isDeleted        Boolean           @default(false)
-  Profile          Profile?
-  Post             Post?
-  Comment          Comment?
-  Sessions         Sessions?
-  LikesInfoPost    LikesInfoPost?
-  LikesInfoComment LikesInfoComment?
-  ConfirmUser      ConfirmUser?
+  isPremium        Boolean            @default(false)
+  isDeleted        Boolean            @default(false)
+  profile          Profile?
+  confirmUser      ConfirmUser?
+  Post             Post[]
+  Comment          Comment[]
+  Sessions         Sessions[]
+  LikesInfoPost    LikesInfoPost[]
+  LikesInfoComment LikesInfoComment[]
 }
 
 model ConfirmUser {
-  id                   String  @id @default(uuid())
+  userOwnerId          String  @id
   isConfirmed          Boolean @default(false)
   codeActivated        String?
   codeActivatedExpired String?
-  userOwnerId          String  @unique()
   user                 User    @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
 }
 
 model Profile {
-  id          String  @id @default(uuid())
+  userOwnerId String  @id
   firstName   String?
   lastName    String?
   birthday    String?
   city        String?
   aboutMe     String?
   srcPhoto    String?
-  userOwnerId String  @unique()
   user        User    @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
 }
 
 model Post {
-  id            String         @id @default(uuid())
+  id            String          @id @default(uuid())
   text          String?
   srcContent    String
-  createdAt     DateTime       @default(now())
-  isPublished   Boolean        @default(false)
-  userOwnerId   String         @unique()
-  user          User           @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
-  Comment       Comment?
-  LikesInfoPost LikesInfoPost?
+  createdAt     DateTime        @default(now())
+  isPublished   Boolean         @default(false)
+  userOwnerId   String          @unique
+  user          User            @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+  Comment       Comment[]
+  LikesInfoPost LikesInfoPost[]
 }
 
 model Comment {
-  id               String            @id @default(uuid())
+  id               String             @id @default(uuid())
   content          String
-  createdAt        DateTime          @default(now())
-  postId           String            @unique()
-  userOwnerId      String            @unique()
-  user             User              @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
-  post             Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
-  LikesInfoComment LikesInfoComment?
+  createdAt        DateTime           @default(now())
+  postId           String             @unique
+  userOwnerId      String             @unique
+  user             User               @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+  post             Post               @relation(fields: [postId], references: [id], onDelete: Cascade)
+  LikesInfoComment LikesInfoComment[]
 }
 
 model Sessions {
@@ -79,7 +77,7 @@ model Sessions {
   title          String
   sessionExpired String
   createdAt      DateTime @default(now())
-  userOwnerId    String   @unique()
+  userOwnerId    String   @unique
   user           User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
 }
 
@@ -87,8 +85,8 @@ model LikesInfoPost {
   id          String   @id @default(uuid())
   status      String
   createdAt   DateTime @default(now())
-  postId      String   @unique()
-  userOwnerId String   @unique()
+  postId      String   @unique
+  userOwnerId String   @unique
   user        User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
@@ -97,8 +95,8 @@ model LikesInfoComment {
   id          String   @id @default(uuid())
   status      String
   createdAt   DateTime @default(now())
-  commentId   String   @unique()
-  userOwnerId String   @unique()
+  commentId   String   @unique
+  userOwnerId String   @unique
   user        User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   post        Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
 }
