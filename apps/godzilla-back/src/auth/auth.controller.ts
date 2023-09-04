@@ -26,6 +26,7 @@ import {
   LoginReqDto,
   SwaggerToAuthorization,
   SwaggerToLogout,
+  SwaggerToMeInfo,
   SwaggerToNewPassword,
   SwaggerToPasswordEmailResending,
   SwaggerToPasswordRecovery,
@@ -38,9 +39,15 @@ import {
   JwtPayloadDecorator,
   mockToken,
 } from '../../../../library/helpers';
-import { AuthObjectType, LoginResType, TokensObjectType } from './core/models';
+import {
+  AuthObjectType,
+  LoginResType,
+  MeInfoType,
+  TokensObjectType,
+} from './core/models';
 import { LocalAuthGuard } from './guards-handlers/guards';
-import { LoginCommand } from './application/commands';
+import { LoginCommand, MeInfoCommand } from './application/commands';
+import { JwtAccessGuard } from './guards-handlers/guards/jwtAccess.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -170,5 +177,13 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     await response.clearCookie('refreshToken');
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAccessGuard)
+  @SwaggerToMeInfo()
+  @Get('me')
+  async meInfo(jwtPayload: JwtAccessPayload): Promise<MeInfoType> {
+    return await this.commandBus.execute(new MeInfoCommand(jwtPayload.userId));
   }
 }

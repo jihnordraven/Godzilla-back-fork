@@ -4,9 +4,12 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { LocalStrategy } from './auth/guards-handlers/strategies';
+import {
+  JwtAccessStrategy,
+  LocalStrategy,
+} from './auth/guards-handlers/strategies';
 
-const strategy = [LocalStrategy];
+const strategy = [LocalStrategy, JwtAccessStrategy];
 
 @Module({
   imports: [CONFIG.START_MODULE, AuthModule, PrismaModule],

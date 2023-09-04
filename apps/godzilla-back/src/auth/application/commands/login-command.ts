@@ -27,12 +27,12 @@ export class LoginUseCase implements ICommandHandler<LoginCommand> {
       await this.authRepository.addNewSession(authObject, expiresTime);
 
     const refreshToken: string = this.jwtService.sign(
-      { deviceId: newSession.id, userID: newSession.userOwnerId },
+      { deviceId: newSession.id, userId: newSession.userOwnerId },
       { secret: CONFIG.JWT_REFRESH_SECRET, expiresIn: CONFIG.EXPIRES_REFRESH },
     );
 
     const accessToken: string = this.jwtService.sign(
-      { userID: newSession.userOwnerId },
+      { userId: newSession.userOwnerId },
       { secret: CONFIG.JWT_ACCESS_SECRET, expiresIn: CONFIG.EXPIRES_ACCESS },
     );
 

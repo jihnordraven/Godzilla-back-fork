@@ -13,6 +13,12 @@ export class AuthRepository {
     });
   }
 
+  async findUserToId(userId: string): Promise<UserBaseType | null> {
+    return await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+  }
+
   async addNewSession(
     authObject: AuthObjectType,
     expiresTime: string,
