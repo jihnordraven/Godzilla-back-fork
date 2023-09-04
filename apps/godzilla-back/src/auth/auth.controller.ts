@@ -135,7 +135,6 @@ export class AuthController {
 
     return {
       accessToken: tokensObject.accessToken,
-      user: tokensObject.userInfo,
     };
   }
 

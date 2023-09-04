@@ -54,7 +54,7 @@ model Post {
   srcContent    String
   createdAt     DateTime        @default(now())
   isPublished   Boolean         @default(false)
-  userOwnerId   String          @unique
+  userOwnerId   String
   user          User            @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   Comment       Comment[]
   LikesInfoPost LikesInfoPost[]
@@ -64,8 +64,8 @@ model Comment {
   id               String             @id @default(uuid())
   content          String
   createdAt        DateTime           @default(now())
-  postId           String             @unique
-  userOwnerId      String             @unique
+  postId           String
+  userOwnerId      String
   user             User               @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   post             Post               @relation(fields: [postId], references: [id], onDelete: Cascade)
   LikesInfoComment LikesInfoComment[]
@@ -77,7 +77,7 @@ model Sessions {
   title          String
   sessionExpired String
   createdAt      DateTime @default(now())
-  userOwnerId    String   @unique
+  userOwnerId    String
   user           User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
 }
 
@@ -85,8 +85,8 @@ model LikesInfoPost {
   id          String   @id @default(uuid())
   status      String
   createdAt   DateTime @default(now())
-  postId      String   @unique
-  userOwnerId String   @unique
+  postId      String
+  userOwnerId String
   user        User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
@@ -95,8 +95,8 @@ model LikesInfoComment {
   id          String   @id @default(uuid())
   status      String
   createdAt   DateTime @default(now())
-  commentId   String   @unique
-  userOwnerId String   @unique
+  commentId   String
+  userOwnerId String
   user        User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   post        Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
 }

@@ -3,11 +3,8 @@ import { AuthRepository } from '../../repository/auth.repository';
 import { add } from 'date-fns';
 import { CONFIG } from '../../../config/config';
 import { JwtService } from '@nestjs/jwt';
-import {
-  AuthObjectType,
-  SessionsBaseAndUserType,
-  TokensObjectType,
-} from '../../core/models';
+import { AuthObjectType, TokensObjectType } from '../../core/models';
+import { SessionsBaseType } from '../../../../../../library/models';
 
 export class LoginCommand {
   constructor(public readonly authObject: AuthObjectType) {}
@@ -26,7 +23,7 @@ export class LoginUseCase implements ICommandHandler<LoginCommand> {
       seconds: +CONFIG.EXPIRES_REFRESH,
     }).toString();
 
-    const newSession: SessionsBaseAndUserType =
+    const newSession: SessionsBaseType =
       await this.authRepository.addNewSession(authObject, expiresTime);
 
     const refreshToken: string = this.jwtService.sign(
@@ -42,7 +39,6 @@ export class LoginUseCase implements ICommandHandler<LoginCommand> {
     return {
       refreshToken: refreshToken,
       accessToken: accessToken,
-      userInfo: newSession.user,
     };
   }
 }

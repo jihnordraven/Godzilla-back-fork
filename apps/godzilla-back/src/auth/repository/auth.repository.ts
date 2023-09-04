@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionsBaseType, UserBaseType } from '../../../../../library/models';
-import { AuthObjectType, SessionsBaseAndUserType } from '../core/models';
+import { AuthObjectType } from '../core/models';
 
 @Injectable()
 export class AuthRepository {
@@ -16,26 +16,13 @@ export class AuthRepository {
   async addNewSession(
     authObject: AuthObjectType,
     expiresTime: string,
-  ): Promise<SessionsBaseAndUserType> {
+  ): Promise<SessionsBaseType> {
     return await this.prisma.sessions.create({
       data: {
         ip: authObject.ip,
         title: authObject.nameDevice,
         sessionExpired: expiresTime,
-        user: {
-          connect: {
-            id: authObject.userID,
-          },
-        },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-          },
-        },
+        userOwnerId: authObject.userID,
       },
     });
   }

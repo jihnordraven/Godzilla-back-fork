@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, Validate } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  Validate,
+} from 'class-validator';
 import { TrimDecorator } from '../../../../../../library/helpers';
 import { CheckedEmailToBase } from '../../class-validators';
 import { PassRecoveryType } from '../models';
@@ -8,11 +14,11 @@ export class PassRecoveryDto implements PassRecoveryType {
   //@Validate(CheckedEmailToBase)
   @TrimDecorator()
   @IsString()
-  @IsEmail()
+  @Matches(/^[A-Za-z\d-\.]+@([\w-]+.)+[\w-]{2,4}$/)
   @ApiProperty({
     description: 'Email of registered user useremail@company.com',
     type: String,
-    pattern: '^[A-Za-z]+@[A-Za-z]+\\.[A-Za-z]+$',
+    pattern: '^[A-Za-z\\d-\\.]+@([\\w-]+.)+[\\w-]{2,4}$',
     nullable: false,
   })
   @IsNotEmpty()
