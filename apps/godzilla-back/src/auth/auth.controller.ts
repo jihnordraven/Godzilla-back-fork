@@ -23,6 +23,7 @@ import {
   PasswordEmailResendingDto,
 } from './core/dto';
 import {
+  LoginReqDto,
   SwaggerToAuthorization,
   SwaggerToLogout,
   SwaggerToNewPassword,
@@ -113,7 +114,9 @@ export class AuthController {
   @SwaggerToAuthorization()
   @Post('login')
   async userAuthorization(
-    @JwtPayloadDecorator() jwtPayload: JwtAccessPayload,
+    @Body() body: LoginReqDto,
+    @JwtPayloadDecorator()
+    jwtPayload: JwtAccessPayload,
     @Ip() userIP: string,
     @Headers('user-agent') nameDevice: string,
     @Res({ passthrough: true }) response: Response,

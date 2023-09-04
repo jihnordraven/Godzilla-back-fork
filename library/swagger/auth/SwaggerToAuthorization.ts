@@ -2,21 +2,30 @@ import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiProperty, ApiResponse } from '@nestjs/swagger';
 import { LoginResType } from '../../../apps/godzilla-back/src/auth/core/models';
 
-class UserInfoDto {
-  @ApiProperty({
-    description: 'User id',
-  })
-  id: string;
-
-  @ApiProperty({
-    description: 'Username',
-  })
-  username: string;
-
-  @ApiProperty({
-    description: 'Email',
-  })
+type LoginReqType = {
   email: string;
+  password: string;
+};
+
+export class LoginReqDto implements LoginReqType {
+  @ApiProperty({
+    description: 'User email',
+    type: String,
+    pattern: '^[A-Za-z\\d-\\.]+@([\\w-]+.)+[\\w-]{2,4}$',
+    nullable: false,
+  })
+  readonly email: string;
+
+  @ApiProperty({
+    description: 'User password',
+    type: String,
+    minLength: 6,
+    maxLength: 20,
+    pattern:
+      '^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+$',
+    nullable: false,
+  })
+  readonly password: string;
 }
 
 class LoginResDto implements LoginResType {
@@ -24,11 +33,6 @@ class LoginResDto implements LoginResType {
     description: 'Access token',
   })
   accessToken: string;
-
-  @ApiProperty({
-    description: 'User info',
-  })
-  user: UserInfoDto;
 }
 export function SwaggerToAuthorization(): MethodDecorator {
   return applyDecorators(
