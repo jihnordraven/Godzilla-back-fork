@@ -14,7 +14,9 @@ import { NewPassUpdateType } from '../models';
 export class NewPassUpdateDto implements NewPassUpdateType {
   @TrimDecorator()
   @Length(6, 20)
-  @Matches(/^[1-9a-zA-Z!"#$%&'()*+,\-.\/:;<=>?@\[\]^_`{\|}~]+$/)
+  @Matches(
+    /^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~])[A-Za-z0-9!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~]+$/,
+  )
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
@@ -22,7 +24,8 @@ export class NewPassUpdateDto implements NewPassUpdateType {
     type: String,
     minLength: 6,
     maxLength: 20,
-    pattern: '^[1-9a-zA-Z!"#$%&\'()*+,\\-.\\/:;<=>?@\\[\\]^_`{\\|}~]+$',
+    pattern:
+      '^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+$',
     nullable: false,
   })
   readonly newPassword: string;

@@ -1,6 +1,5 @@
 import { TrimDecorator } from '../../../../../../library/helpers';
 import {
-  IsEmail,
   IsNotEmpty,
   IsString,
   Length,
@@ -34,11 +33,12 @@ export class CreateUserDto implements CreateUserType {
   //@Validate(CheckedUniqueEmail)
   @TrimDecorator()
   @IsString()
-  @IsEmail()
+  @Matches(/^[A-Za-z\d-\.]+@([\w-]+.)+[\w-]{2,4}$/)
   @IsNotEmpty()
   @ApiProperty({
     description: 'User email',
     type: String,
+    pattern: '^[A-Za-z\\d-\\.]+@([\\w-]+.)+[\\w-]{2,4}$',
     nullable: false,
   })
   readonly email: string;

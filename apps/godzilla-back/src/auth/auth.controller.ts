@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   Post,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
@@ -22,6 +23,7 @@ import {
   PasswordEmailResendingDto,
 } from './core/dto';
 import {
+  LoginReqDto,
   SwaggerToAuthorization,
   SwaggerToLogout,
   SwaggerToNewPassword,
@@ -34,10 +36,11 @@ import {
 import {
   JwtAccessPayload,
   JwtPayloadDecorator,
-  JwtRefreshPayload,
   mockToken,
 } from '../../../../library/helpers';
-import { LoginResType } from './core/models';
+import { AuthObjectType, LoginResType, TokensObjectType } from './core/models';
+import { LocalAuthGuard } from './guards-handlers/guards';
+import { LoginCommand } from './application/commands';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -107,29 +110,34 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @UseGuards(LocalAuthGuard)
   @SwaggerToAuthorization()
   @Post('login')
   async userAuthorization(
-    //@JwtPayloadDecorator() jwtPayload: JwtAccessPayload,
+    @Body() body: LoginReqDto,
+    @JwtPayloadDecorator()
+    jwtPayload: JwtAccessPayload,
     @Ip() userIP: string,
     @Headers('user-agent') nameDevice: string,
     @Res({ passthrough: true }) response: Response,
   ): Promise<LoginResType> {
-    console.log(userIP, nameDevice);
+    const authObjectDTO: AuthObjectType = {
+      ip: userIP,
+      nameDevice: nameDevice,
+      userID: jwtPayload.userId,
+    };
 
-    response.cookie('refreshToken', mockToken, {
+    const tokensObject: TokensObjectType = await this.commandBus.execute(
+      new LoginCommand(authObjectDTO),
+    );
+
+    response.cookie('refreshToken', tokensObject.refreshToken, {
       httpOnly: true,
       secure: true,
     });
 
     return {
-      accessToken: mockToken,
-      user: {
-        userId: 'f57aeded-6aac-4c7d-b298-1b7e4078184c',
-        username: 'ValeraGolova',
-        email: 'valeraGolova@gmail.com',
-        createdAt: new Date().toISOString(),
-      },
+      accessToken: tokensObject.accessToken,
     };
   }
 
