@@ -11,9 +11,13 @@ import { AuthService } from './application/auth.service';
 import { AuthRepository } from './repository/auth.repository';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PassportModule } from '@nestjs/passport';
-import { BcryptAdapter } from './adapters/bcrypt.adapter';
-import { LoginUseCase } from './application/commands';
+import {
+  LoginUseCase,
+  LogoutUseCase,
+  MeInfoUseCase,
+} from './application/commands';
 import { JwtModule } from '@nestjs/jwt';
+import { BcryptAdapter } from './adapters';
 
 const validators = [
   CheckedEmailToBase,
@@ -22,7 +26,7 @@ const validators = [
   CheckedUniqueEmail,
 ];
 
-const commands = [LoginUseCase];
+const commands = [LoginUseCase, MeInfoUseCase, LogoutUseCase];
 
 const adapters = [BcryptAdapter];
 

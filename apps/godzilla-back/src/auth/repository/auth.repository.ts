@@ -13,6 +13,12 @@ export class AuthRepository {
     });
   }
 
+  async findUserToId(userId: string): Promise<UserBaseType | null> {
+    return await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+  }
+
   async addNewSession(
     authObject: AuthObjectType,
     expiresTime: string,
@@ -25,5 +31,13 @@ export class AuthRepository {
         userOwnerId: authObject.userID,
       },
     });
+  }
+
+  async findActiveSession(sessionId: string): Promise<SessionsBaseType | null> {
+    return await this.prisma.sessions.findUnique({ where: { id: sessionId } });
+  }
+
+  async deleteSession(sessionId: string) {
+    await this.prisma.sessions.delete({ where: { id: sessionId } });
   }
 }
