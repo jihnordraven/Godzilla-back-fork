@@ -12,14 +12,12 @@ model User {
   id               String             @id @default(uuid())
   username         String             @unique(map: "User.login_unique")
   email            String             @unique(map: "User.email_unique")
-  hushPass         String
+  hashPassword     String             @map("hash_password")
   createdAt        DateTime           @default(now())
-  gitHubInf        String?
-  googleInf        String?
-  isBanned         Boolean            @default(false)
-  banReason        String?
-  isPremium        Boolean            @default(false)
-  isDeleted        Boolean            @default(false)
+  isBlocked        Boolean            @default(false) @map("is_blocked")
+  banReason        String?            @map("ban_reason")
+  isPremium        Boolean            @default(false) @map("is_premium")
+  isDeleted        Boolean            @default(false) @map("is_deleted")
   profile          Profile?
   confirmUser      ConfirmUser?
   Post             Post[]
@@ -27,78 +25,94 @@ model User {
   Sessions         Sessions[]
   LikesInfoPost    LikesInfoPost[]
   LikesInfoComment LikesInfoComment[]
+
+  @@map("users")
 }
 
 model ConfirmUser {
-  userOwnerId          String  @id
-  isConfirmed          Boolean @default(false)
-  codeActivated        String? @unique
-  codeActivatedExpired String?
+  userOwnerId          String  @id @map("user_owner_id")
+  isConfirmed          Boolean @default(false) @map("is_confirmed")
+  codeActivated        String? @unique @map("code_activated")
+  codeActivatedExpired String? @map("code_activated_expired")
   user                 User    @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
 
-  isActive             Boolean @default(true)
+  isActive Boolean @default(true) @map("is_active")
+
+  @@map("confirm_users")
 }
 
 model Profile {
-  userOwnerId String  @id
-  firstName   String?
-  lastName    String?
+  userOwnerId String  @id @map("user_owner_id")
+  firstName   String? @map("first_name")
+  lastName    String? @map("last_name")
   birthday    String?
   city        String?
-  aboutMe     String?
-  srcPhoto    String?
+  aboutMe     String? @map("about_me")
+  srcPhoto    String? @map("src_photo")
   user        User    @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
 }
 
 model Post {
   id            String          @id @default(uuid())
   text          String?
-  srcContent    String
-  createdAt     DateTime        @default(now())
-  isPublished   Boolean         @default(false)
-  userOwnerId   String
+  srcContent    String          @map("src_content")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  isPublished   Boolean         @default(false) @map("is_published")
+  userOwnerId   String          @map("user_owner_id")
   user          User            @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   Comment       Comment[]
   LikesInfoPost LikesInfoPost[]
+
+  @@map("posts")
 }
 
 model Comment {
   id               String             @id @default(uuid())
   content          String
-  createdAt        DateTime           @default(now())
-  postId           String
-  userOwnerId      String
+  createdAt        DateTime           @default(now()) @map("created_at")
+  postId           String             @map("post_id")
+  userOwnerId      String             @map("user_owner_id")
   user             User               @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   post             Post               @relation(fields: [postId], references: [id], onDelete: Cascade)
   LikesInfoComment LikesInfoComment[]
+
+  @@map("comments")
 }
 
 model Sessions {
   id             String   @id @default(uuid())
   ip             String
   title          String
-  sessionExpired String
-  createdAt      DateTime @default(now())
-  userOwnerId    String
+  sessionExpired String   @map("session_expired")
+  createdAt      DateTime @default(now()) @map("created_at")
+  userOwnerId    String   @map("user_owner_id")
   user           User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
 model LikesInfoPost {
   id          String   @id @default(uuid())
   status      String
-  createdAt   DateTime @default(now())
-  postId      String
-  userOwnerId String
+  createdAt   DateTime @default(now()) @map("created_at")
+  postId      String   @map("post_id")
+  userOwnerId String   @map("user_owner_id")
   user        User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("likes_info_post")
 }
 
 model LikesInfoComment {
   id          String   @id @default(uuid())
   status      String
-  createdAt   DateTime @default(now())
-  commentId   String
-  userOwnerId String
+  createdAt   DateTime @default(now()) @map("created_at")
+  commentId   String   @map("comment_id")
+  userOwnerId String   @map("user_owner_id")
   user        User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   post        Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@map("likes_info_comment")
 }

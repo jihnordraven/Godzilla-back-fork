@@ -11,14 +11,16 @@ import { AuthService } from './application/auth.service'
 import { AuthRepository } from './repository/auth.repository'
 import { PrismaModule } from '../prisma/prisma.module'
 import { PassportModule } from '@nestjs/passport'
-import { BcryptAdapter } from './adapters/bcrypt.adapter'
+import { BcryptAdapter, ActivateCodeAdapter, MailerAdapter } from '../adapters'
 import {
 	LoginUseCase,
 	LocalRegisterHandler,
-	ResendEmailCodeHandler
+	ResendEmailCodeHandler,
+	PasswordRecoveryHandler,
+	NewPasswordHandler,
+	PasswordRecoveryResendHandler
 } from './application/commands'
 import { JwtModule } from '@nestjs/jwt'
-import { MailerAdapter } from './adapters/mailer.adapter'
 
 const validators = [
 	CheckedEmailToBase,
@@ -27,9 +29,16 @@ const validators = [
 	CheckedUniqueEmail
 ]
 
-const commandHandlers = [LoginUseCase, LocalRegisterHandler, ResendEmailCodeHandler]
+const commandHandlers = [
+	LoginUseCase,
+	LocalRegisterHandler,
+	ResendEmailCodeHandler,
+	PasswordRecoveryHandler,
+	PasswordRecoveryResendHandler,
+	NewPasswordHandler
+]
 
-const adapters = [BcryptAdapter, MailerAdapter]
+const adapters = [BcryptAdapter, MailerAdapter, ActivateCodeAdapter]
 
 const modules = [CqrsModule, PrismaModule, PassportModule, JwtModule]
 

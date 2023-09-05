@@ -16,13 +16,7 @@ import {
 import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger'
 import { CommandBus } from '@nestjs/cqrs'
 import { Response } from 'express'
-import {
-	CreateUserDto,
-	EmailResendingDto,
-	NewPassUpdateDto,
-	PassRecoveryDto,
-	PasswordEmailResendingDto
-} from './core/dto'
+import { CreateUserDto, NewPassUpdateDto, PassRecoveryDto } from './core/dto'
 import {
 	LoginReqDto,
 	SwaggerToAuthorization,
@@ -33,18 +27,17 @@ import {
 	SwaggerToRefreshToken,
 	SwaggerToRegistration,
 	SwaggerToRegistrationEmailResending
-} from '../../../../library/swagger/auth'
-import {
-	JwtAccessPayload,
-	JwtPayloadDecorator,
-	mockToken
-} from '../../../../library/helpers'
+} from 'library/swagger/auth'
+import { JwtAccessPayload, JwtPayloadDecorator, mockToken } from 'library/helpers'
 import { AuthObjectType, LoginResType, TokensObjectType } from './core/models'
 import { LocalAuthGuard } from './guards-handlers/guards'
 import {
 	LocalRegisterCommand,
 	LoginCommand,
-	ResendEmailCodeCommand
+	NewPasswordCommand,
+	ResendEmailCodeCommand,
+	PasswordRecoveryCommand,
+	PasswordRecoveryResendCommand
 } from './application/commands'
 
 @ApiTags('Auth')
@@ -55,7 +48,7 @@ export class AuthController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToRegistration()
 	@Post('registration')
-	async userRegistration(@Body() createUser: CreateUserDto): Promise<void> {
+	async localRegister(@Body() createUser: CreateUserDto): Promise<void> {
 		await this.commandBus.execute(new LocalRegisterCommand(createUser))
 	}
 
@@ -77,18 +70,15 @@ export class AuthController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToPasswordRecovery()
 	@Post('password-recovery')
-	async userCreateNewPass(@Body() PassRecovery: PassRecoveryDto) {
-		console.log(PassRecovery.email)
-		console.log(PassRecovery.email)
+	async userCreateNewPass(@Body() { email }: PassRecoveryDto) {
+		await this.commandBus.execute(new PasswordRecoveryCommand({ email }))
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToPasswordEmailResending()
 	@Post('password-email-resending')
-	async passwordEmailResending(
-		@Body() passwordEmailResending: PasswordEmailResendingDto
-	) {
-		console.log(passwordEmailResending)
+	async passwordEmailResending(@Body() { email }: { email: string }) {
+		await this.commandBus.execute(new PasswordRecoveryResendCommand({ email }))
 	}
 
 	@HttpCode(HttpStatus.OK)
@@ -104,8 +94,10 @@ export class AuthController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToNewPassword()
 	@Post('new-password')
-	async userUpdateNewPass(@Body() newPassUpdate: NewPassUpdateDto) {
-		console.log(newPassUpdate)
+	async userUpdateNewPass(@Body() { newPassword, recoveryCode }: NewPassUpdateDto) {
+		await this.commandBus.execute(
+			new NewPasswordCommand({ recoveryCode, newPassword })
+		)
 	}
 
 	@HttpCode(HttpStatus.OK)

@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ConfirmUser, User } from '@prisma/client'
 import { AuthRepository } from '../../repository/auth.repository'
 import { NotFoundException } from '@nestjs/common'
-import { MailerAdapter } from '../../adapters/mailer.adapter'
+import { MailerAdapter } from '../../../adapters'
 
 export class ResendEmailCodeCommand {
 	constructor(public readonly data: { email: string }) {}
@@ -26,7 +26,7 @@ export class ResendEmailCodeHandler implements ICommandHandler<ResendEmailCodeCo
 			userId: user.id
 		})
 
-		await this.mailerAdapter.sendMail({
+		await this.mailerAdapter.sendConfirmCode({
 			email: user.email,
 			code: emailCode.codeActivated
 		})

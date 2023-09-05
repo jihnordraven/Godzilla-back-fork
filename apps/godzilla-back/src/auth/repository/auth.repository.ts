@@ -42,12 +42,12 @@ export class AuthRepository {
 		return emailCode
 	}
 
-	async findOneEmailCodeByCode({
-		code
-	}: {
-		code: string
-	}): Promise<ConfirmUser | null> {
+	async findOneCodeByCode({ code }: { code: string }): Promise<ConfirmUser | null> {
 		return this.prisma.confirmUser.findUnique({ where: { codeActivated: code } })
+	}
+
+	async findUniqueUserById({ userId }: { userId: string }): Promise<User | null> {
+		return this.prisma.user.findUnique({ where: { id: userId } })
 	}
 
 	async deactivateAllEmailCodes({ userId }: { userId: string }): Promise<void> {
@@ -61,6 +61,21 @@ export class AuthRepository {
 		return await this.prisma.user.findUnique({
 			where: { email }
 		})
+	}
+
+	async createNewPassword({
+		userId,
+		hashPassword
+	}: {
+		userId: string
+		hashPassword: string
+	}): Promise<boolean> {
+		return Boolean(
+			await this.prisma.user.update({
+				where: { id: userId },
+				data: { hushPass: hashPassword }
+			})
+		)
 	}
 
 	async addNewSession(

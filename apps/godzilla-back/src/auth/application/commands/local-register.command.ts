@@ -1,9 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { CreateUserDto } from '../../core/dto'
 import { AuthRepository } from '../../repository/auth.repository'
-import { BcryptAdapter } from '../../adapters'
+import { BcryptAdapter } from '../../../adapters'
 import { ConfirmUser, User } from '@prisma/client'
-import { MailerAdapter } from '../../adapters/mailer.adapter'
+import { MailerAdapter } from '../../../adapters/mailer.adapter'
 
 export class LocalRegisterCommand {
 	constructor(public readonly createUser: CreateUserDto) {}
@@ -32,6 +32,6 @@ export class LocalRegisterHandler implements ICommandHandler<LocalRegisterComman
 			userId: user.id
 		})
 
-		await this.mailerAdapter.sendMail({ email, code: emailCode.codeActivated })
+		await this.mailerAdapter.sendConfirmCode({ email, code: emailCode.codeActivated })
 	}
 }
