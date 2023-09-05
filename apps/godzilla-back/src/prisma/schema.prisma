@@ -32,9 +32,11 @@ model User {
 model ConfirmUser {
   userOwnerId          String  @id
   isConfirmed          Boolean @default(false)
-  codeActivated        String?
+  codeActivated        String? @unique
   codeActivatedExpired String?
   user                 User    @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+
+  isActive             Boolean @default(true)
 }
 
 model Profile {
