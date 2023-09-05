@@ -55,11 +55,15 @@ import {
   LogoutCommand,
   MeInfoCommand,
 } from './application/commands';
+import { AuthService } from './application/auth.service';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly authService: AuthService,
+  ) {}
 
   @HttpCode(HttpStatus.NO_CONTENT)
   @SwaggerToRegistration()
@@ -171,8 +175,10 @@ export class AuthController {
       userID: jwtPayload.userId,
     };
 
-    const tokensObject: TokensObjectType = await this.commandBus.execute(
-      new LoginCommand(authObjectDTO),
+    const tokensObject: TokensObjectType = await this.authService.refreshFlow(
+      authObjectDTO,
+      jwtPayload.userId,
+      jwtPayload.sessionId,
     );
 
     response.cookie('refreshToken', tokensObject.refreshToken, {

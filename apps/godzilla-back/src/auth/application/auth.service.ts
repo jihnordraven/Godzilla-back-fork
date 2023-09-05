@@ -3,11 +3,15 @@ import { AuthRepository } from '../repository/auth.repository';
 import { SessionsBaseType, UserBaseType } from '../../../../../library/models';
 import { BcryptAdapter } from '../adapters/bcrypt.adapter';
 import { JwtAccessPayload } from '../../../../../library/helpers';
+import { AuthObjectType, TokensObjectType } from '../core/models';
+import { CommandBus } from '@nestjs/cqrs';
+import { LoginCommand, LogoutCommand } from './commands';
 
 @Injectable()
 export class AuthService {
   constructor(
     protected authRepository: AuthRepository,
+    protected commandBus: CommandBus,
     protected bcrypt: BcryptAdapter,
   ) {}
 
@@ -32,6 +36,16 @@ export class AuthService {
     }
 
     return { userId: user.id };
+  }
+
+  async refreshFlow(
+    authObjectDTO: AuthObjectType,
+    userId: string,
+    sessionId: string,
+  ): Promise<TokensObjectType> {
+    await this.commandBus.execute(new LogoutCommand(userId, sessionId));
+
+    return await this.commandBus.execute(new LoginCommand(authObjectDTO));
   }
 
   async checkedActiveSession(
