@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AuthRepository } from '../repository/auth.repository';
-import { UserBaseType } from '../../../../../library/models';
+import { SessionsBaseType, UserBaseType } from '../../../../../library/models';
 import { BcryptAdapter } from '../adapters/bcrypt.adapter';
 import { JwtAccessPayload } from '../../../../../library/helpers';
 
@@ -32,6 +32,32 @@ export class AuthService {
     }
 
     return { userId: user.id };
+  }
+
+  async checkedActiveSession(
+    sessionId: string,
+    expiredSecondsToken: number,
+  ): Promise<boolean> {
+    if (!sessionId) {
+      return false;
+    }
+
+    const activeSession: SessionsBaseType | null =
+      await this.authRepository.findActiveSession(sessionId);
+
+    if (!activeSession) {
+      return false;
+    }
+
+    const lastActiveToSecond = Number(
+      Date.parse(activeSession.sessionExpired).toString().slice(0, 10),
+    );
+
+    if (expiredSecondsToken - lastActiveToSecond > 2) {
+      return false;
+    }
+
+    return true;
   }
 
   async checkedEmailToBase(email: string): Promise<boolean> {

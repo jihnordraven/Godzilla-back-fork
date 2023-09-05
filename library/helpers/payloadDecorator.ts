@@ -5,11 +5,8 @@ export type JwtAccessPayload = {
 };
 export type JwtRefreshPayload = {
   userId: string;
-  deviceId: string;
+  sessionId: string;
 };
-
-export const mockToken: string =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhNWRmNmQxOC05NWM3LTRhMDgtYTgzYy00YjJiOWJkYmQ2ODQiLCJpYXQiOjE1MTYyMzkwMjJ9.KltiMPbQy6K0u4bbzaB8X2Kr2dTlIKTB-X5y1auugkA';
 
 export const JwtPayloadDecorator = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {

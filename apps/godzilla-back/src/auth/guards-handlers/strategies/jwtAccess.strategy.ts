@@ -4,18 +4,27 @@ import { PassportStrategy } from '@nestjs/passport';
 import { CONFIG } from '../../../config/config';
 import { JwtAccessPayload } from '../../../../../../library/helpers';
 
+export const AccessCookieExtractor = function (req) {
+  let token = null;
+
+  if (req && req.cookies['refreshToken']) {
+    token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+  }
+
+  return token;
+};
+
 @Injectable()
 export class JwtAccessStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: true,
+      jwtFromRequest: AccessCookieExtractor,
+      ignoreExpiration: false,
       secretOrKey: CONFIG.JWT_ACCESS_SECRET,
     });
   }
 
   async validate(payload: any): Promise<JwtAccessPayload> {
-    console.log(payload);
-    return payload;
+    return { userId: payload.userId };
   }
 }

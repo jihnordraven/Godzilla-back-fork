@@ -37,7 +37,7 @@ import {
 import {
   JwtAccessPayload,
   JwtPayloadDecorator,
-  mockToken,
+  JwtRefreshPayload,
 } from '../../../../library/helpers';
 import {
   AuthObjectType,
@@ -45,9 +45,16 @@ import {
   MeInfoType,
   TokensObjectType,
 } from './core/models';
-import { LocalAuthGuard } from './guards-handlers/guards';
-import { LoginCommand, MeInfoCommand } from './application/commands';
-import { JwtAccessGuard } from './guards-handlers/guards/jwtAccess.guard';
+import {
+  JwtAccessGuard,
+  JwtRefreshGuard,
+  LocalAuthGuard,
+} from './guards-handlers/guards';
+import {
+  LoginCommand,
+  LogoutCommand,
+  MeInfoCommand,
+} from './application/commands';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -149,41 +156,57 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtRefreshGuard)
   @SwaggerToRefreshToken()
   @Get('refresh-token')
   async userRefreshToken(
-    // @JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
+    @JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
     @Ip() userIP: string,
     @Headers('user-agent') nameDevice: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    console.log(userIP, nameDevice);
+    const authObjectDTO: AuthObjectType = {
+      ip: userIP,
+      nameDevice: nameDevice,
+      userID: jwtPayload.userId,
+    };
 
-    response.cookie('refreshToken', mockToken, {
+    const tokensObject: TokensObjectType = await this.commandBus.execute(
+      new LoginCommand(authObjectDTO),
+    );
+
+    response.cookie('refreshToken', tokensObject.refreshToken, {
       httpOnly: true,
       secure: true,
     });
 
     return {
-      accessToken: mockToken,
+      accessToken: tokensObject.accessToken,
     };
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtRefreshGuard)
   @SwaggerToLogout()
   @Post('logout')
   async userLogout(
-    //@JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
+    @JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
     @Res({ passthrough: true }) response: Response,
   ) {
-    await response.clearCookie('refreshToken');
+    await this.commandBus.execute(
+      new LogoutCommand(jwtPayload.userId, jwtPayload.sessionId),
+    );
+
+    response.clearCookie('refreshToken');
   }
 
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAccessGuard)
   @SwaggerToMeInfo()
   @Get('me')
-  async meInfo(jwtPayload: JwtAccessPayload): Promise<MeInfoType> {
+  async meInfo(
+    @JwtPayloadDecorator() jwtPayload: JwtAccessPayload,
+  ): Promise<MeInfoType> {
     return await this.commandBus.execute(new MeInfoCommand(jwtPayload.userId));
   }
 }

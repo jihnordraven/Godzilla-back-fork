@@ -32,4 +32,12 @@ export class AuthRepository {
       },
     });
   }
+
+  async findActiveSession(sessionId: string): Promise<SessionsBaseType | null> {
+    return await this.prisma.sessions.findUnique({ where: { id: sessionId } });
+  }
+
+  async deleteSession(sessionId: string) {
+    await this.prisma.sessions.delete({ where: { id: sessionId } });
+  }
 }
