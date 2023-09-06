@@ -15,7 +15,14 @@ export const prisma = new PrismaClient();
 async function appLoader() {
   const app = await NestFactory.create(AppModule, { cors: true });
 
-  app.enableCors();
+  app.enableCors({
+    origin: [
+      'http://localhost:3000',
+      'https://godzilla-front.vercel.app/',
+      'https://godzillagram.com/',
+    ],
+    credentials: true,
+  });
 
   app.use(cookieParser());
 
