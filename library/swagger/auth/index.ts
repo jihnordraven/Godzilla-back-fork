@@ -6,3 +6,4 @@ export * from './SwaggerToRegistration';
 export * from './SwaggerToPasswordEmailResending';
 export * from './SwaggerToRegistrationEmailResending';
 export * from './SwaggerToLogout';
+export * from './SwaggerToMeInfo';

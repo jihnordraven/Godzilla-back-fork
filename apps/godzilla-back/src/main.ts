@@ -13,9 +13,17 @@ import cookieParser from 'cookie-parser';
 export const prisma = new PrismaClient();
 
 async function appLoader() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule);
 
-  app.enableCors();
+  app.enableCors({
+    origin: [
+      'http://localhost:3000',
+      'https://godzilla-front.vercel.app/',
+      'https://godzillagram.com/',
+    ],
+    credentials: true,
+    methods: ['GET', 'PUT', 'POST', 'DELETE'],
+  });
 
   app.use(cookieParser());
 

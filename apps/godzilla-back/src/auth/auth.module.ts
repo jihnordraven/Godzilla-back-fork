@@ -18,7 +18,9 @@ import {
 	ResendEmailCodeHandler,
 	PasswordRecoveryHandler,
 	NewPasswordHandler,
-	PasswordRecoveryResendHandler
+	PasswordRecoveryResendHandler,
+  LogoutUseCase,
+  MeInfoUseCase,
 } from './application/commands'
 import { JwtModule } from '@nestjs/jwt'
 
@@ -35,7 +37,9 @@ const commandHandlers = [
 	ResendEmailCodeHandler,
 	PasswordRecoveryHandler,
 	PasswordRecoveryResendHandler,
-	NewPasswordHandler
+	NewPasswordHandler,
+  MeInfoUseCase,
+  LogoutUseCase
 ]
 
 const adapters = [BcryptAdapter, MailerAdapter, ActivateCodeAdapter]
