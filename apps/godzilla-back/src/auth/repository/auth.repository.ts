@@ -19,7 +19,7 @@ export class AuthRepository {
 				data: {
 					email: data.email,
 					username: data.username,
-					hushPass: data.hashPassword
+					hashPassword: data.hashPassword
 				}
 			})
 			.catch((err: string) => this.logger.error(red(err)))
@@ -57,7 +57,7 @@ export class AuthRepository {
 		})
 	}
 
-	async findUserToEmail(email: string): Promise<UserBaseType | null> {
+	async findUserToEmail(email: string): Promise<User | null> {
 		return await this.prisma.user.findUnique({
 			where: { email }
 		})
@@ -73,7 +73,7 @@ export class AuthRepository {
 		return Boolean(
 			await this.prisma.user.update({
 				where: { id: userId },
-				data: { hushPass: hashPassword }
+				data: { hashPassword }
 			})
 		)
 	}
@@ -92,17 +92,17 @@ export class AuthRepository {
 		})
 	}
 
-  async findUserToId(userId: string): Promise<UserBaseType | null> {
-    return await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-  }
+	async findUserToId(userId: string): Promise<User | null> {
+		return await this.prisma.user.findUnique({
+			where: { id: userId }
+		})
+	}
 
-  async findActiveSession(sessionId: string): Promise<SessionsBaseType | null> {
-    return await this.prisma.sessions.findUnique({ where: { id: sessionId } });
-  }
+	async findActiveSession(sessionId: string): Promise<SessionsBaseType | null> {
+		return await this.prisma.sessions.findUnique({ where: { id: sessionId } })
+	}
 
-  async deleteSession(sessionId: string) {
-    await this.prisma.sessions.delete({ where: { id: sessionId } });
-  }
+	async deleteSession(sessionId: string) {
+		await this.prisma.sessions.delete({ where: { id: sessionId } })
+	}
 }

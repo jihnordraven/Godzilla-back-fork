@@ -17,69 +17,46 @@ import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger'
 import { CommandBus } from '@nestjs/cqrs'
 import { Response } from 'express'
 import { CreateUserDto, NewPassUpdateDto, PassRecoveryDto } from './core/dto'
+import { JwtAccessGuard, JwtRefreshGuard, LocalAuthGuard } from './guards-handlers/guards'
 import {
 	LoginReqDto,
 	SwaggerToAuthorization,
 	SwaggerToLogout,
+	SwaggerToMeInfo,
 	SwaggerToNewPassword,
 	SwaggerToPasswordEmailResending,
 	SwaggerToPasswordRecovery,
 	SwaggerToRefreshToken,
 	SwaggerToRegistration,
 	SwaggerToRegistrationEmailResending
-} from 'library/swagger/auth'
-import { JwtAccessPayload, JwtPayloadDecorator, mockToken } from 'library/helpers'
-import { AuthObjectType, LoginResType, TokensObjectType } from './core/models'
-import { LocalAuthGuard } from './guards-handlers/guards'
+} from '../../../../library/swagger/auth'
 import {
-  LoginReqDto,
-  SwaggerToAuthorization,
-  SwaggerToLogout,
-  SwaggerToMeInfo,
-  SwaggerToNewPassword,
-  SwaggerToPasswordEmailResending,
-  SwaggerToPasswordRecovery,
-  SwaggerToRefreshToken,
-  SwaggerToRegistration,
-  SwaggerToRegistrationEmailResending,
-} from '../../../../library/swagger/auth';
+	JwtAccessPayload,
+	JwtPayloadDecorator,
+	JwtRefreshPayload
+} from '../../../../library/helpers'
+import { AuthObjectType, LoginResType, MeInfoType, TokensObjectType } from './core/models'
 import {
-  JwtAccessPayload,
-  JwtPayloadDecorator,
-  JwtRefreshPayload,
-} from '../../../../library/helpers';
-import {
-  AuthObjectType,
-  LoginResType,
-  MeInfoType,
-  TokensObjectType,
-} from './core/models';
-import {
-  JwtAccessGuard,
-  JwtRefreshGuard,
-  LocalAuthGuard,
-} from './guards-handlers/guards';
-import {
-  LoginCommand,
-  LogoutCommand,
-  MeInfoCommand,
+	LoginCommand,
+	LogoutCommand,
+	MeInfoCommand,
 	LocalRegisterCommand,
 	NewPasswordCommand,
 	ResendEmailCodeCommand,
 	PasswordRecoveryCommand,
 	PasswordRecoveryResendCommand
-} from './application/commands';
-import { AuthService } from './application/auth.service';
+} from './application/commands'
+import { AuthService } from './application/auth.service'
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly commandBus: CommandBus,
-    private readonly authService: AuthService,
-  ) {}
+	constructor(
+		private readonly commandBus: CommandBus,
+		private readonly authService: AuthService
+	) {}
 
-  	@HttpCode(HttpStatus.NO_CONTENT)
+	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToRegistration()
 	@Post('registration')
 	async localRegister(@Body() createUser: CreateUserDto): Promise<void> {
@@ -134,92 +111,92 @@ export class AuthController {
 		)
 	}
 
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(LocalAuthGuard)
-  @SwaggerToAuthorization()
-  @Post('login')
-  async userAuthorization(
-    @Body() body: LoginReqDto,
-    @JwtPayloadDecorator()
-    jwtPayload: JwtAccessPayload,
-    @Ip() userIP: string,
-    @Headers('user-agent') nameDevice: string,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<LoginResType> {
-    const authObjectDTO: AuthObjectType = {
-      ip: userIP,
-      nameDevice: nameDevice,
-      userID: jwtPayload.userId,
-    };
+	@HttpCode(HttpStatus.OK)
+	@UseGuards(LocalAuthGuard)
+	@SwaggerToAuthorization()
+	@Post('login')
+	async userAuthorization(
+		@Body() body: LoginReqDto,
+		@JwtPayloadDecorator()
+		jwtPayload: JwtAccessPayload,
+		@Ip() userIP: string,
+		@Headers('user-agent') nameDevice: string,
+		@Res({ passthrough: true }) response: Response
+	): Promise<LoginResType> {
+		const authObjectDTO: AuthObjectType = {
+			ip: userIP,
+			nameDevice: nameDevice,
+			userID: jwtPayload.userId
+		}
 
-    const tokensObject: TokensObjectType = await this.commandBus.execute(
-      new LoginCommand(authObjectDTO),
-    );
+		const tokensObject: TokensObjectType = await this.commandBus.execute(
+			new LoginCommand(authObjectDTO)
+		)
 
-    response.cookie('refreshToken', tokensObject.refreshToken, {
-      httpOnly: true,
-      secure: true,
-    });
+		response.cookie('refreshToken', tokensObject.refreshToken, {
+			httpOnly: true,
+			secure: true
+		})
 
-    return {
-      accessToken: tokensObject.accessToken,
-    };
-  }
+		return {
+			accessToken: tokensObject.accessToken
+		}
+	}
 
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtRefreshGuard)
-  @SwaggerToRefreshToken()
-  @Get('refresh-token')
-  async userRefreshToken(
-    @JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
-    @Ip() userIP: string,
-    @Headers('user-agent') nameDevice: string,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const authObjectDTO: AuthObjectType = {
-      ip: userIP,
-      nameDevice: nameDevice,
-      userID: jwtPayload.userId,
-    };
+	@HttpCode(HttpStatus.OK)
+	@UseGuards(JwtRefreshGuard)
+	@SwaggerToRefreshToken()
+	@Get('refresh-token')
+	async userRefreshToken(
+		@JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
+		@Ip() userIP: string,
+		@Headers('user-agent') nameDevice: string,
+		@Res({ passthrough: true }) response: Response
+	) {
+		const authObjectDTO: AuthObjectType = {
+			ip: userIP,
+			nameDevice: nameDevice,
+			userID: jwtPayload.userId
+		}
 
-    const tokensObject: TokensObjectType = await this.authService.refreshFlow(
-      authObjectDTO,
-      jwtPayload.userId,
-      jwtPayload.sessionId,
-    );
+		const tokensObject: TokensObjectType = await this.authService.refreshFlow(
+			authObjectDTO,
+			jwtPayload.userId,
+			jwtPayload.sessionId
+		)
 
-    response.cookie('refreshToken', tokensObject.refreshToken, {
-      httpOnly: true,
-      secure: true,
-    });
+		response.cookie('refreshToken', tokensObject.refreshToken, {
+			httpOnly: true,
+			secure: true
+		})
 
-    return {
-      accessToken: tokensObject.accessToken,
-    };
-  }
+		return {
+			accessToken: tokensObject.accessToken
+		}
+	}
 
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(JwtRefreshGuard)
-  @SwaggerToLogout()
-  @Post('logout')
-  async userLogout(
-    @JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    await this.commandBus.execute(
-      new LogoutCommand(jwtPayload.userId, jwtPayload.sessionId),
-    );
+	@HttpCode(HttpStatus.NO_CONTENT)
+	@UseGuards(JwtRefreshGuard)
+	@SwaggerToLogout()
+	@Post('logout')
+	async userLogout(
+		@JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
+		@Res({ passthrough: true }) response: Response
+	) {
+		await this.commandBus.execute(
+			new LogoutCommand(jwtPayload.userId, jwtPayload.sessionId)
+		)
 
-    response.clearCookie('refreshToken');
-  }
+		response.clearCookie('refreshToken')
+	}
 
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAccessGuard)
-  @SwaggerToMeInfo()
-  @Get('me')
-  async meInfo(
-    @JwtPayloadDecorator() jwtPayload: JwtAccessPayload,
-  ): Promise<MeInfoType> {
-    return await this.commandBus.execute(new MeInfoCommand(jwtPayload.userId));
-  }
+	@HttpCode(HttpStatus.OK)
+	@UseGuards(JwtAccessGuard)
+	@SwaggerToMeInfo()
+	@Get('me')
+	async meInfo(
+		@JwtPayloadDecorator() jwtPayload: JwtAccessPayload
+	): Promise<MeInfoType> {
+		return await this.commandBus.execute(new MeInfoCommand(jwtPayload.userId))
+	}
 }

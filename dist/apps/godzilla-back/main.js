@@ -214,7 +214,7 @@ const app_service_1 = __webpack_require__(/*! ./app.service */ "./apps/godzilla-
 const auth_module_1 = __webpack_require__(/*! ./auth/auth.module */ "./apps/godzilla-back/src/auth/auth.module.ts");
 const prisma_module_1 = __webpack_require__(/*! ./prisma/prisma.module */ "./apps/godzilla-back/src/prisma/prisma.module.ts");
 const strategies_1 = __webpack_require__(/*! ./auth/guards-handlers/strategies */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/index.ts");
-const strategies = [strategies_1.LocalStrategy];
+const strategies = [strategies_1.LocalStrategy, strategies_1.JwtAccessStrategy, strategies_1.JwtRefreshStrategy];
 let AppModule = exports.AppModule = class AppModule {
 };
 exports.AppModule = AppModule = __decorate([
@@ -295,27 +295,48 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b;
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const auth_repository_1 = __webpack_require__(/*! ../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
-const bcrypt_adapter_1 = __webpack_require__(/*! ../../adapters/bcrypt.adapter */ "./apps/godzilla-back/src/adapters/bcrypt.adapter.ts");
+const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
+const commands_1 = __webpack_require__(/*! ./commands */ "./apps/godzilla-back/src/auth/application/commands/index.ts");
+const adapters_1 = __webpack_require__(/*! ../../adapters */ "./apps/godzilla-back/src/adapters/index.ts");
 let AuthService = exports.AuthService = class AuthService {
-    constructor(authRepository, bcrypt) {
+    constructor(authRepository, commandBus, bcrypt) {
         this.authRepository = authRepository;
+        this.commandBus = commandBus;
         this.bcrypt = bcrypt;
     }
     async validateLogin(email, password) {
         const user = await this.authRepository.findUserToEmail(email);
-        if (!user || user.isBanned === true) {
+        if (!user || user.isBlocked === true) {
             return null;
         }
-        const validatePassword = await this.bcrypt.hushCompare(password, user.hushPass);
+        const validatePassword = await this.bcrypt.hushCompare(password, user.hashPassword);
         if (!validatePassword) {
             return null;
         }
         return { userId: user.id };
+    }
+    async refreshFlow(authObjectDTO, userId, sessionId) {
+        await this.commandBus.execute(new commands_1.LogoutCommand(userId, sessionId));
+        return await this.commandBus.execute(new commands_1.LoginCommand(authObjectDTO));
+    }
+    async checkedActiveSession(sessionId, expiredSecondsToken) {
+        if (!sessionId) {
+            return false;
+        }
+        const activeSession = await this.authRepository.findActiveSession(sessionId);
+        if (!activeSession) {
+            return false;
+        }
+        const lastActiveToSecond = Number(Date.parse(activeSession.sessionExpired).toString().slice(0, 10));
+        if (expiredSecondsToken - lastActiveToSecond > 2) {
+            return false;
+        }
+        return true;
     }
     async checkedEmailToBase(email) {
         console.log(email);
@@ -336,7 +357,7 @@ let AuthService = exports.AuthService = class AuthService {
 };
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof bcrypt_adapter_1.BcryptAdapter !== "undefined" && bcrypt_adapter_1.BcryptAdapter) === "function" ? _b : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof cqrs_1.CommandBus !== "undefined" && cqrs_1.CommandBus) === "function" ? _b : Object, typeof (_c = typeof adapters_1.BcryptAdapter !== "undefined" && adapters_1.BcryptAdapter) === "function" ? _c : Object])
 ], AuthService);
 
 
@@ -370,6 +391,8 @@ __exportStar(__webpack_require__(/*! ./resend-email-code.command */ "./apps/godz
 __exportStar(__webpack_require__(/*! ./password-recovery.command */ "./apps/godzilla-back/src/auth/application/commands/password-recovery.command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./new-password.command */ "./apps/godzilla-back/src/auth/application/commands/new-password.command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./password-recovery-resend.command */ "./apps/godzilla-back/src/auth/application/commands/password-recovery-resend.command.ts"), exports);
+__exportStar(__webpack_require__(/*! ./logout-command */ "./apps/godzilla-back/src/auth/application/commands/logout-command.ts"), exports);
+__exportStar(__webpack_require__(/*! ./meInfo-command */ "./apps/godzilla-back/src/auth/application/commands/meInfo-command.ts"), exports);
 
 
 /***/ }),
@@ -471,8 +494,8 @@ let LoginUseCase = exports.LoginUseCase = class LoginUseCase {
             seconds: +config_1.CONFIG.EXPIRES_REFRESH,
         }).toString();
         const newSession = await this.authRepository.addNewSession(authObject, expiresTime);
-        const refreshToken = this.jwtService.sign({ deviceId: newSession.id, userID: newSession.userOwnerId }, { secret: config_1.CONFIG.JWT_REFRESH_SECRET, expiresIn: config_1.CONFIG.EXPIRES_REFRESH });
-        const accessToken = this.jwtService.sign({ userID: newSession.userOwnerId }, { secret: config_1.CONFIG.JWT_ACCESS_SECRET, expiresIn: config_1.CONFIG.EXPIRES_ACCESS });
+        const refreshToken = this.jwtService.sign({ sessionId: newSession.id, userId: newSession.userOwnerId }, { secret: config_1.CONFIG.JWT_REFRESH_SECRET, expiresIn: +config_1.CONFIG.EXPIRES_REFRESH });
+        const accessToken = this.jwtService.sign({ userId: newSession.userOwnerId }, { secret: config_1.CONFIG.JWT_ACCESS_SECRET, expiresIn: +config_1.CONFIG.EXPIRES_ACCESS });
         return {
             refreshToken: refreshToken,
             accessToken: accessToken,
@@ -483,6 +506,112 @@ exports.LoginUseCase = LoginUseCase = __decorate([
     (0, cqrs_1.CommandHandler)(LoginCommand),
     __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _b : Object])
 ], LoginUseCase);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/application/commands/logout-command.ts":
+/*!****************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/application/commands/logout-command.ts ***!
+  \****************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LogoutUseCase = exports.LogoutCommand = void 0;
+const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
+const auth_repository_1 = __webpack_require__(/*! ../../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+class LogoutCommand {
+    constructor(userId, sessionId) {
+        this.userId = userId;
+        this.sessionId = sessionId;
+    }
+}
+exports.LogoutCommand = LogoutCommand;
+let LogoutUseCase = exports.LogoutUseCase = class LogoutUseCase {
+    constructor(authRepository) {
+        this.authRepository = authRepository;
+    }
+    async execute(command) {
+        const { userId, sessionId } = command;
+        const session = await this.authRepository.findActiveSession(sessionId);
+        if (!session) {
+            throw new common_1.NotFoundException();
+        }
+        if (session.userOwnerId !== userId) {
+            throw new common_1.ForbiddenException();
+        }
+        await this.authRepository.deleteSession(sessionId);
+    }
+};
+exports.LogoutUseCase = LogoutUseCase = __decorate([
+    (0, cqrs_1.CommandHandler)(LogoutCommand),
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object])
+], LogoutUseCase);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/application/commands/meInfo-command.ts":
+/*!****************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/application/commands/meInfo-command.ts ***!
+  \****************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.MeInfoUseCase = exports.MeInfoCommand = void 0;
+const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
+const auth_repository_1 = __webpack_require__(/*! ../../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+class MeInfoCommand {
+    constructor(userId) {
+        this.userId = userId;
+    }
+}
+exports.MeInfoCommand = MeInfoCommand;
+let MeInfoUseCase = exports.MeInfoUseCase = class MeInfoUseCase {
+    constructor(authRepository) {
+        this.authRepository = authRepository;
+    }
+    async execute(command) {
+        const { userId } = command;
+        const user = await this.authRepository.findUserToId(userId);
+        if (!user) {
+            throw new common_1.NotFoundException();
+        }
+        return {
+            userId: user.id,
+            username: user.username,
+            email: user.email
+        };
+    }
+};
+exports.MeInfoUseCase = MeInfoUseCase = __decorate([
+    (0, cqrs_1.CommandHandler)(MeInfoCommand),
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object])
+], MeInfoUseCase);
 
 
 /***/ }),
@@ -731,7 +860,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -739,13 +868,15 @@ const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const express_1 = __webpack_require__(/*! express */ "express");
 const dto_1 = __webpack_require__(/*! ./core/dto */ "./apps/godzilla-back/src/auth/core/dto/index.ts");
-const auth_1 = __webpack_require__(/*! library/swagger/auth */ "./library/swagger/auth/index.ts");
-const helpers_1 = __webpack_require__(/*! library/helpers */ "./library/helpers/index.ts");
 const guards_1 = __webpack_require__(/*! ./guards-handlers/guards */ "./apps/godzilla-back/src/auth/guards-handlers/guards/index.ts");
+const auth_1 = __webpack_require__(/*! ../../../../library/swagger/auth */ "./library/swagger/auth/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../library/helpers */ "./library/helpers/index.ts");
 const commands_1 = __webpack_require__(/*! ./application/commands */ "./apps/godzilla-back/src/auth/application/commands/index.ts");
+const auth_service_1 = __webpack_require__(/*! ./application/auth.service */ "./apps/godzilla-back/src/auth/application/auth.service.ts");
 let AuthController = exports.AuthController = class AuthController {
-    constructor(commandBus) {
+    constructor(commandBus, authService) {
         this.commandBus = commandBus;
+        this.authService = authService;
     }
     async localRegister(createUser) {
         await this.commandBus.execute(new commands_1.LocalRegisterCommand(createUser));
@@ -781,18 +912,27 @@ let AuthController = exports.AuthController = class AuthController {
             accessToken: tokensObject.accessToken
         };
     }
-    async userRefreshToken(userIP, nameDevice, response) {
-        console.log(userIP, nameDevice);
-        response.cookie('refreshToken', helpers_1.mockToken, {
+    async userRefreshToken(jwtPayload, userIP, nameDevice, response) {
+        const authObjectDTO = {
+            ip: userIP,
+            nameDevice: nameDevice,
+            userID: jwtPayload.userId
+        };
+        const tokensObject = await this.authService.refreshFlow(authObjectDTO, jwtPayload.userId, jwtPayload.sessionId);
+        response.cookie('refreshToken', tokensObject.refreshToken, {
             httpOnly: true,
             secure: true
         });
         return {
-            accessToken: helpers_1.mockToken
+            accessToken: tokensObject.accessToken
         };
     }
-    async userLogout(response) {
-        await response.clearCookie('refreshToken');
+    async userLogout(jwtPayload, response) {
+        await this.commandBus.execute(new commands_1.LogoutCommand(jwtPayload.userId, jwtPayload.sessionId));
+        response.clearCookie('refreshToken');
+    }
+    async meInfo(jwtPayload) {
+        return await this.commandBus.execute(new commands_1.MeInfoCommand(jwtPayload.userId));
     }
 };
 __decorate([
@@ -801,8 +941,8 @@ __decorate([
     (0, common_1.Post)('registration'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_b = typeof dto_1.CreateUserDto !== "undefined" && dto_1.CreateUserDto) === "function" ? _b : Object]),
-    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+    __metadata("design:paramtypes", [typeof (_c = typeof dto_1.CreateUserDto !== "undefined" && dto_1.CreateUserDto) === "function" ? _c : Object]),
+    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
 ], AuthController.prototype, "localRegister", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
@@ -811,7 +951,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
 ], AuthController.prototype, "userRegistrationResending", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -820,7 +960,7 @@ __decorate([
     __param(0, (0, common_1.Query)('code', new common_1.ParseUUIDPipe())),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_e = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _e : Object]),
+    __metadata("design:paramtypes", [String, typeof (_f = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _f : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userRegistrationConfirm", null);
 __decorate([
@@ -829,7 +969,7 @@ __decorate([
     (0, common_1.Post)('password-recovery'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_f = typeof dto_1.PassRecoveryDto !== "undefined" && dto_1.PassRecoveryDto) === "function" ? _f : Object]),
+    __metadata("design:paramtypes", [typeof (_g = typeof dto_1.PassRecoveryDto !== "undefined" && dto_1.PassRecoveryDto) === "function" ? _g : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userCreateNewPass", null);
 __decorate([
@@ -856,7 +996,7 @@ __decorate([
     (0, common_1.Post)('new-password'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_g = typeof dto_1.NewPassUpdateDto !== "undefined" && dto_1.NewPassUpdateDto) === "function" ? _g : Object]),
+    __metadata("design:paramtypes", [typeof (_h = typeof dto_1.NewPassUpdateDto !== "undefined" && dto_1.NewPassUpdateDto) === "function" ? _h : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userUpdateNewPass", null);
 __decorate([
@@ -870,33 +1010,47 @@ __decorate([
     __param(3, (0, common_1.Headers)('user-agent')),
     __param(4, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_h = typeof auth_1.LoginReqDto !== "undefined" && auth_1.LoginReqDto) === "function" ? _h : Object, typeof (_j = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _j : Object, String, String, typeof (_k = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _k : Object]),
-    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
+    __metadata("design:paramtypes", [typeof (_j = typeof auth_1.LoginReqDto !== "undefined" && auth_1.LoginReqDto) === "function" ? _j : Object, typeof (_k = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _k : Object, String, String, typeof (_l = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _l : Object]),
+    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
 ], AuthController.prototype, "userAuthorization", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(guards_1.JwtRefreshGuard),
     (0, auth_1.SwaggerToRefreshToken)(),
     (0, common_1.Get)('refresh-token'),
-    __param(0, (0, common_1.Ip)()),
-    __param(1, (0, common_1.Headers)('user-agent')),
-    __param(2, (0, common_1.Res)({ passthrough: true })),
+    __param(0, (0, helpers_1.JwtPayloadDecorator)()),
+    __param(1, (0, common_1.Ip)()),
+    __param(2, (0, common_1.Headers)('user-agent')),
+    __param(3, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, typeof (_m = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _m : Object]),
+    __metadata("design:paramtypes", [typeof (_o = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _o : Object, String, String, typeof (_p = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _p : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userRefreshToken", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    (0, common_1.UseGuards)(guards_1.JwtRefreshGuard),
     (0, auth_1.SwaggerToLogout)(),
     (0, common_1.Post)('logout'),
-    __param(0, (0, common_1.Res)({ passthrough: true })),
+    __param(0, (0, helpers_1.JwtPayloadDecorator)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_o = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _o : Object]),
+    __metadata("design:paramtypes", [typeof (_q = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _q : Object, typeof (_r = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _r : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userLogout", null);
+__decorate([
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(guards_1.JwtAccessGuard),
+    (0, auth_1.SwaggerToMeInfo)(),
+    (0, common_1.Get)('me'),
+    __param(0, (0, helpers_1.JwtPayloadDecorator)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_s = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _s : Object]),
+    __metadata("design:returntype", typeof (_t = typeof Promise !== "undefined" && Promise) === "function" ? _t : Object)
+], AuthController.prototype, "meInfo", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('Auth'),
     (0, common_1.Controller)('auth'),
-    __metadata("design:paramtypes", [typeof (_a = typeof cqrs_1.CommandBus !== "undefined" && cqrs_1.CommandBus) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof cqrs_1.CommandBus !== "undefined" && cqrs_1.CommandBus) === "function" ? _a : Object, typeof (_b = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _b : Object])
 ], AuthController);
 
 
@@ -940,7 +1094,9 @@ const commandHandlers = [
     commands_1.ResendEmailCodeHandler,
     commands_1.PasswordRecoveryHandler,
     commands_1.PasswordRecoveryResendHandler,
-    commands_1.NewPasswordHandler
+    commands_1.NewPasswordHandler,
+    commands_1.MeInfoUseCase,
+    commands_1.LogoutUseCase
 ];
 const adapters = [adapters_1.BcryptAdapter, adapters_1.MailerAdapter, adapters_1.ActivateCodeAdapter];
 const modules = [cqrs_1.CqrsModule, prisma_module_1.PrismaModule, passport_1.PassportModule, jwt_1.JwtModule];
@@ -1466,6 +1622,60 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__webpack_require__(/*! ./local.guard */ "./apps/godzilla-back/src/auth/guards-handlers/guards/local.guard.ts"), exports);
+__exportStar(__webpack_require__(/*! ./jwtAccess.guard */ "./apps/godzilla-back/src/auth/guards-handlers/guards/jwtAccess.guard.ts"), exports);
+__exportStar(__webpack_require__(/*! ./jwtRefresh.guard */ "./apps/godzilla-back/src/auth/guards-handlers/guards/jwtRefresh.guard.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/guards-handlers/guards/jwtAccess.guard.ts":
+/*!*******************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/guards-handlers/guards/jwtAccess.guard.ts ***!
+  \*******************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtAccessGuard = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+let JwtAccessGuard = exports.JwtAccessGuard = class JwtAccessGuard extends (0, passport_1.AuthGuard)('jwt') {
+};
+exports.JwtAccessGuard = JwtAccessGuard = __decorate([
+    (0, common_1.Injectable)()
+], JwtAccessGuard);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/guards-handlers/guards/jwtRefresh.guard.ts":
+/*!********************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/guards-handlers/guards/jwtRefresh.guard.ts ***!
+  \********************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtRefreshGuard = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+let JwtRefreshGuard = exports.JwtRefreshGuard = class JwtRefreshGuard extends (0, passport_1.AuthGuard)('refreshToken') {
+};
+exports.JwtRefreshGuard = JwtRefreshGuard = __decorate([
+    (0, common_1.Injectable)()
+], JwtRefreshGuard);
 
 
 /***/ }),
@@ -1519,6 +1729,108 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__webpack_require__(/*! ./local.strategy */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/local.strategy.ts"), exports);
+__exportStar(__webpack_require__(/*! ./jwtAccess.strategy */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/jwtAccess.strategy.ts"), exports);
+__exportStar(__webpack_require__(/*! ./jwtRefresh.strategy */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/jwtRefresh.strategy.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/guards-handlers/strategies/jwtAccess.strategy.ts":
+/*!**************************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/guards-handlers/strategies/jwtAccess.strategy.ts ***!
+  \**************************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtAccessStrategy = exports.AccessCookieExtractor = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_jwt_1 = __webpack_require__(/*! passport-jwt */ "passport-jwt");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+const config_1 = __webpack_require__(/*! ../../../config/config */ "./apps/godzilla-back/src/config/config.ts");
+const AccessCookieExtractor = function (req) {
+    let token = null;
+    if (req && req.cookies['refreshToken']) {
+        token = passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    }
+    return token;
+};
+exports.AccessCookieExtractor = AccessCookieExtractor;
+let JwtAccessStrategy = exports.JwtAccessStrategy = class JwtAccessStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
+    constructor() {
+        super({
+            jwtFromRequest: exports.AccessCookieExtractor,
+            ignoreExpiration: false,
+            secretOrKey: config_1.CONFIG.JWT_ACCESS_SECRET,
+        });
+    }
+    async validate(payload) {
+        return { userId: payload.userId };
+    }
+};
+exports.JwtAccessStrategy = JwtAccessStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [])
+], JwtAccessStrategy);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/guards-handlers/strategies/jwtRefresh.strategy.ts":
+/*!***************************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/guards-handlers/strategies/jwtRefresh.strategy.ts ***!
+  \***************************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtRefreshStrategy = void 0;
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+const passport_jwt_1 = __webpack_require__(/*! passport-jwt */ "passport-jwt");
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const auth_service_1 = __webpack_require__(/*! ../../application/auth.service */ "./apps/godzilla-back/src/auth/application/auth.service.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../library/helpers */ "./library/helpers/index.ts");
+const config_1 = __webpack_require__(/*! ../../../config/config */ "./apps/godzilla-back/src/config/config.ts");
+let JwtRefreshStrategy = exports.JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, 'refreshToken') {
+    constructor(authService) {
+        super({
+            jwtFromRequest: helpers_1.RefreshCookieExtractor,
+            ignoreExpiration: false,
+            secretOrKey: config_1.CONFIG.JWT_REFRESH_SECRET,
+        });
+        this.authService = authService;
+    }
+    async validate(payload) {
+        const validateSession = await this.authService.checkedActiveSession(payload.sessionId, payload.iat);
+        if (!validateSession) {
+            throw new common_1.UnauthorizedException('Session expired');
+        }
+        return { userId: payload.userId, sessionId: payload.sessionId };
+    }
+};
+exports.JwtRefreshStrategy = JwtRefreshStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _a : Object])
+], JwtRefreshStrategy);
 
 
 /***/ }),
@@ -1601,7 +1913,7 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
             data: {
                 email: data.email,
                 username: data.username,
-                hushPass: data.hashPassword
+                hashPassword: data.hashPassword
             }
         })
             .catch((err) => this.logger.error((0, colorette_1.red)(err)));
@@ -1643,7 +1955,7 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
     async createNewPassword({ userId, hashPassword }) {
         return Boolean(await this.prisma.user.update({
             where: { id: userId },
-            data: { hushPass: hashPassword }
+            data: { hashPassword }
         }));
     }
     async addNewSession(authObject, expiresTime) {
@@ -1655,6 +1967,17 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
                 userOwnerId: authObject.userID
             }
         });
+    }
+    async findUserToId(userId) {
+        return await this.prisma.user.findUnique({
+            where: { id: userId }
+        });
+    }
+    async findActiveSession(sessionId) {
+        return await this.prisma.sessions.findUnique({ where: { id: sessionId } });
+    }
+    async deleteSession(sessionId) {
+        await this.prisma.sessions.delete({ where: { id: sessionId } });
     }
 };
 exports.AuthRepository = AuthRepository = AuthRepository_1 = __decorate([
@@ -1715,8 +2038,16 @@ const http_exception_filter_1 = __webpack_require__(/*! ../../../library/errors-
 const cookie_parser_1 = __importDefault(__webpack_require__(/*! cookie-parser */ "cookie-parser"));
 exports.prisma = new client_1.PrismaClient();
 async function appLoader() {
-    const app = await core_1.NestFactory.create(app_module_1.AppModule, { cors: true });
-    app.enableCors();
+    const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    app.enableCors({
+        origin: [
+            'http://localhost:3000',
+            'https://godzilla-front.vercel.app/',
+            'https://godzillagram.com/',
+        ],
+        credentials: true,
+        methods: ['GET', 'PUT', 'POST', 'DELETE'],
+    });
     app.use((0, cookie_parser_1.default)());
     (0, class_validator_1.useContainer)(app.select(app_module_1.AppModule), { fallbackOnErrors: true });
     app.useGlobalPipes(new common_1.ValidationPipe(validatePipeOptions_1.validatePipeOptions));
@@ -1940,9 +2271,8 @@ __exportStar(__webpack_require__(/*! ./refreshCookieExtractor */ "./library/help
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.JwtPayloadDecorator = exports.mockToken = void 0;
+exports.JwtPayloadDecorator = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-exports.mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhNWRmNmQxOC05NWM3LTRhMDgtYTgzYy00YjJiOWJkYmQ2ODQiLCJpYXQiOjE1MTYyMzkwMjJ9.KltiMPbQy6K0u4bbzaB8X2Kr2dTlIKTB-X5y1auugkA';
 exports.JwtPayloadDecorator = (0, common_1.createParamDecorator)((data, ctx) => {
     const request = ctx.switchToHttp().getRequest();
     return request.user ? request.user : {};
@@ -2132,6 +2462,55 @@ function SwaggerToLogout() {
     }));
 }
 exports.SwaggerToLogout = SwaggerToLogout;
+
+
+/***/ }),
+
+/***/ "./library/swagger/auth/SwaggerToMeInfo.ts":
+/*!*************************************************!*\
+  !*** ./library/swagger/auth/SwaggerToMeInfo.ts ***!
+  \*************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SwaggerToMeInfo = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+class MeInfoDto {
+}
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], MeInfoDto.prototype, "userId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], MeInfoDto.prototype, "username", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], MeInfoDto.prototype, "email", void 0);
+function SwaggerToMeInfo() {
+    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: 'Get information about current user' }), (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'User info',
+        type: MeInfoDto,
+    }), (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.UNAUTHORIZED,
+        description: 'If the JWT accessToken missing, expired or incorrect',
+    }));
+}
+exports.SwaggerToMeInfo = SwaggerToMeInfo;
 
 
 /***/ }),
@@ -2342,6 +2721,7 @@ __exportStar(__webpack_require__(/*! ./SwaggerToRegistration */ "./library/swagg
 __exportStar(__webpack_require__(/*! ./SwaggerToPasswordEmailResending */ "./library/swagger/auth/SwaggerToPasswordEmailResending.ts"), exports);
 __exportStar(__webpack_require__(/*! ./SwaggerToRegistrationEmailResending */ "./library/swagger/auth/SwaggerToRegistrationEmailResending.ts"), exports);
 __exportStar(__webpack_require__(/*! ./SwaggerToLogout */ "./library/swagger/auth/SwaggerToLogout.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToMeInfo */ "./library/swagger/auth/SwaggerToMeInfo.ts"), exports);
 
 
 /***/ }),
@@ -2524,6 +2904,16 @@ module.exports = require("express");
 /***/ ((module) => {
 
 module.exports = require("nodemailer");
+
+/***/ }),
+
+/***/ "passport-jwt":
+/*!*******************************!*\
+  !*** external "passport-jwt" ***!
+  \*******************************/
+/***/ ((module) => {
+
+module.exports = require("passport-jwt");
 
 /***/ }),
 
