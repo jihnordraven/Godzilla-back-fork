@@ -13,7 +13,7 @@ import cookieParser from 'cookie-parser';
 export const prisma = new PrismaClient();
 
 async function appLoader() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule);
 
   app.enableCors({
     origin: [
