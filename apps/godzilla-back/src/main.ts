@@ -22,6 +22,7 @@ async function appLoader() {
       'https://godzillagram.com/',
     ],
     credentials: true,
+    methods: ['GET', 'PUT', 'POST', 'DELETE'],
   });
 
   app.use(cookieParser());
