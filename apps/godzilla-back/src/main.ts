@@ -16,15 +16,17 @@ import { blue, red } from "colorette"
 async function appLoader() {
 	const app = await NestFactory.create<INestApplication>(AppModule)
 
-	app.enableCors({
-		origin: [
-			"http://localhost:3000",
-			"https://godzilla-front.vercel.app/",
-			"https://godzillagram.com/"
-		],
-		credentials: true,
-		methods: ["GET", "PUT", "POST", "DELETE"]
-	})
+	// app.enableCors({
+	// 	origin: [
+	// 		"http://localhost:3000",
+	// 		"https://godzilla-front.vercel.app/",
+	// 		"https://godzillagram.com/"
+	// 	],
+	// 	credentials: true,
+	// 	methods: ["GET", "PUT", "POST", "DELETE"]
+	// })
+
+	app.enableCors()
 
 	app.use(cookieParser())
 
