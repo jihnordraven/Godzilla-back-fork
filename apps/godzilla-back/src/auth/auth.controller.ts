@@ -15,7 +15,7 @@ import {
 } from "@nestjs/common"
 import { ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger"
 import { CommandBus } from "@nestjs/cqrs"
-import { Request, Response } from "express"
+import { Response } from "express"
 import { CreateUserDto, NewPassUpdateDto, PassRecoveryDto } from "./core/dto"
 import { JwtAccessGuard, JwtRefreshGuard, LocalAuthGuard } from "./guards-handlers/guards"
 import {
