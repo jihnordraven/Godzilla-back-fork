@@ -10,8 +10,8 @@ import {
 import cookieParser from "cookie-parser"
 import { ConfigService } from "@nestjs/config"
 import { blue, red } from "colorette"
-import { validatePipeOptions } from "libs/errors-handlers"
-import { swaggerSetup } from "libs/swagger/swagger.setup"
+import { validatePipeOptions } from "../../../libs/errors-handlers"
+import { swaggerSetup } from "../../../libs/swagger/swagger.setup"
 
 async function appLoader() {
 	const app = await NestFactory.create<INestApplication>(AppModule)
@@ -23,7 +23,7 @@ async function appLoader() {
 			"https://godzillagram.com/"
 		],
 		credentials: true,
-		methods: ["GET", "PUT", "POST", "DELETE"]
+		methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"]
 	})
 
 	app.use(cookieParser())
