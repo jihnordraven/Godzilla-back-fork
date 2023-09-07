@@ -10,8 +10,7 @@ import {
 	Post,
 	Res,
 	UseGuards,
-	Query,
-	Req
+	Query
 } from "@nestjs/common"
 import { ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger"
 import { CommandBus } from "@nestjs/cqrs"
@@ -53,7 +52,7 @@ import {
 	GooglePayloadDecorator,
 	UserAgentDecorator
 } from "../../../../libs/common/decorators"
-import { TokensEnum } from "libs/models/enums"
+import { TokensEnum } from "../../../../libs/models/enums"
 
 type SetTokensToResponseType = {
 	readonly tokens: TokensObjectType
