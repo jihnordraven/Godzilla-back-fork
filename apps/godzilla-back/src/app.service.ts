@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable } from "@nestjs/common"
 import { PrismaService } from "./prisma/prisma.service"
 import { ConfigService } from "@nestjs/config"
-import { AllTablesEnum } from "libs/models"
+import { AllTablesEnum } from "../../../libs/models"
 
 @Injectable()
 export class AppService {
