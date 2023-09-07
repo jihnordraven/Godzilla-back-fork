@@ -13,32 +13,51 @@ model User {
   username         String             @unique(map: "User.login_unique")
   email            String             @unique(map: "User.email_unique")
   hashPassword     String             @map("hash_password")
-  createdAt        DateTime           @default(now())
+  isConfirmed      Boolean            @default(false) @map("is_confirmed")
   isBlocked        Boolean            @default(false) @map("is_blocked")
-  banReason        String?            @map("ban_reason")
-  isPremium        Boolean            @default(false) @map("is_premium")
   isDeleted        Boolean            @default(false) @map("is_deleted")
-  profile          Profile?
-  confirmUser      ConfirmUser?
-  Post             Post[]
   Comment          Comment[]
-  Sessions         Sessions[]
-  LikesInfoPost    LikesInfoPost[]
+  EmailConfirmCode EmailConfirmCode[]
   LikesInfoComment LikesInfoComment[]
+  LikesInfoPost    LikesInfoPost[]
+  Post             Post[]
+  profile          Profile?
+  Sessions         Sessions[]
+  GoogleProfile    GoogleProfile?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
 }
 
-model ConfirmUser {
-  userOwnerId          String  @id @map("user_owner_id")
-  isConfirmed          Boolean @default(false) @map("is_confirmed")
-  codeActivated        String? @unique @map("code_activated")
-  codeActivatedExpired String? @map("code_activated_expired")
-  user                 User    @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+model GoogleProfile {
+  id          String  @id @unique @default(uuid())
+  providerId  String  @unique @map("provider_id")
+  username    String  @unique
+  email       String  @unique
+  displayName String? @map("display_name")
+  provider    String
+  userId      String  @unique @map("user_id")
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  isActive Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@map("confirm_users")
+  @@map("google_profiles")
+}
+
+model EmailConfirmCode {
+  id     String   @id @unique @default(uuid())
+  code   String   @unique
+  exp    DateTime
+  userId String   @map("user_id")
+  users  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isUsed Boolean  @default(false) @map("is_used")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("email_confirm_codes")
 }
 
 model Profile {
@@ -48,7 +67,7 @@ model Profile {
   birthday    String?
   city        String?
   aboutMe     String? @map("about_me")
-  srcPhoto    String? @map("src_photo")
+  srcPhoto    String?
   user        User    @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
 
   @@map("profiles")
@@ -58,12 +77,14 @@ model Post {
   id            String          @id @default(uuid())
   text          String?
   srcContent    String          @map("src_content")
-  createdAt     DateTime        @default(now()) @map("created_at")
   isPublished   Boolean         @default(false) @map("is_published")
   userOwnerId   String          @map("user_owner_id")
-  user          User            @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   Comment       Comment[]
   LikesInfoPost LikesInfoPost[]
+  user          User            @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("posts")
 }
@@ -71,48 +92,53 @@ model Post {
 model Comment {
   id               String             @id @default(uuid())
   content          String
-  createdAt        DateTime           @default(now()) @map("created_at")
   postId           String             @map("post_id")
   userOwnerId      String             @map("user_owner_id")
-  user             User               @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   post             Post               @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user             User               @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
   LikesInfoComment LikesInfoComment[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
 
   @@map("comments")
 }
 
 model Sessions {
-  id             String   @id @default(uuid())
-  ip             String
-  title          String
-  sessionExpired String   @map("session_expired")
-  createdAt      DateTime @default(now()) @map("created_at")
-  userOwnerId    String   @map("user_owner_id")
-  user           User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+  id          String @id @default(uuid())
+  userIP      String @map("user_ip")
+  userAgent   String @unique @map("user_agent")
+  expires     String
+  userOwnerId String @map("user_owner_id")
+  user        User   @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("sessions")
 }
 
 model LikesInfoPost {
-  id          String   @id @default(uuid())
+  id          String @id @default(uuid())
   status      String
-  createdAt   DateTime @default(now()) @map("created_at")
-  postId      String   @map("post_id")
-  userOwnerId String   @map("user_owner_id")
-  user        User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
-  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId      String @map("post_id")
+  userOwnerId String @map("user_owner_id")
+  post        Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user        User   @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("likes_info_post")
 }
 
 model LikesInfoComment {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   status      String
-  createdAt   DateTime @default(now()) @map("created_at")
-  commentId   String   @map("comment_id")
-  userOwnerId String   @map("user_owner_id")
-  user        User     @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
-  post        Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId   String  @map("comment_id")
+  userOwnerId String  @map("user_owner_id")
+  post        Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userOwnerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("likes_info_comment")
 }

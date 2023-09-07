@@ -19,8 +19,7 @@
 		"noFallthroughCasesInSwitch": false,
 		"esModuleInterop": true,
 		"paths": {
-			"@libs": ["./library/*"],
-			"@library": ["library/*"]
+			"@libs/*": ["libs/*"]
 		}
 	}
 }

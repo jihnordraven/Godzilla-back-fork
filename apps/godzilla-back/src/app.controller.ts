@@ -1,8 +1,8 @@
-import { Controller, Delete, Get, HttpCode, HttpStatus } from '@nestjs/common'
-import { AppService } from './app.service'
-import { ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { Controller, Delete, Get, HttpCode, HttpStatus } from "@nestjs/common"
+import { AppService } from "./app.service"
+import { ApiExcludeEndpoint, ApiOperation, ApiTags } from "@nestjs/swagger"
 
-@ApiTags('Testing')
+@ApiTags("Testing")
 @Controller()
 export class AppController {
 	constructor(private readonly appService: AppService) {}
@@ -15,8 +15,8 @@ export class AppController {
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
-	@ApiOperation({ summary: 'Delete all data in all' })
-	@Delete('testing/all-data')
+	@ApiOperation({ summary: "Delete all data in all" })
+	@Delete("testing/all-data")
 	async testingAllDelete() {
 		try {
 			await this.appService.deleteAll()

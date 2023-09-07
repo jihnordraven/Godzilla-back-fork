@@ -1,30 +1,30 @@
-import { Injectable } from '@nestjs/common';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { PassportStrategy } from '@nestjs/passport';
-import { CONFIG } from '../../../config/config';
-import { JwtAccessPayload } from '../../../../../../library/helpers';
+import { Injectable } from "@nestjs/common"
+import { ExtractJwt, Strategy } from "passport-jwt"
+import { PassportStrategy } from "@nestjs/passport"
+import { JwtAccessPayload } from "@libs/helpers"
+import { ConfigService } from "@nestjs/config"
 
 export const AccessCookieExtractor = function (req) {
-  let token = null;
+	let token = null
 
-  if (req && req.cookies['refreshToken']) {
-    token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-  }
+	if (req && req.cookies["refreshToken"]) {
+		token = ExtractJwt.fromAuthHeaderAsBearerToken()(req)
+	}
 
-  return token;
-};
+	return token
+}
 
 @Injectable()
 export class JwtAccessStrategy extends PassportStrategy(Strategy) {
-  constructor() {
-    super({
-      jwtFromRequest: AccessCookieExtractor,
-      ignoreExpiration: false,
-      secretOrKey: CONFIG.JWT_ACCESS_SECRET,
-    });
-  }
+	constructor(private readonly config: ConfigService) {
+		super({
+			jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+			ignoreExpiration: false,
+			secretOrKey: config.getOrThrow<string>("JWT_ACCESS_SECRET")
+		})
+	}
 
-  async validate(payload: any): Promise<JwtAccessPayload> {
-    return { userId: payload.userId };
-  }
+	async validate(payload: any): Promise<JwtAccessPayload> {
+		return { userId: payload.userId }
+	}
 }

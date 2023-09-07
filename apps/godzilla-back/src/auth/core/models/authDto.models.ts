@@ -24,7 +24,7 @@ export type PasswordEmailResendingType = {
 export type LocalRegisterType = {
 	readonly email: string
 	readonly username: string
-	readonly hashPassword: string
+	readonly hashPassword?: string
 }
 
 export type CreateEmailCodeType = {

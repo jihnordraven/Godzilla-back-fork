@@ -1,10 +1,15 @@
-import bcrypt from 'bcrypt';
-export class BcryptAdapter {
-  async hushGenerate(password: string): Promise<string> {
-    return await bcrypt.hash(password, 10);
-  }
+import { compare, hash } from "bcrypt"
 
-  public async hushCompare(password: string, hush: string): Promise<boolean> {
-    return await bcrypt.compare(password, hush);
-  }
+type HashInputType = { password: string }
+
+type CompareInputType = { password: string; hash: string }
+
+export class BcryptAdapter {
+	public async hash(data: HashInputType): Promise<string> {
+		return hash(data.password, 8)
+	}
+
+	public async compare(data: CompareInputType): Promise<boolean> {
+		return compare(data.password, data.hash)
+	}
 }

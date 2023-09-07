@@ -1,9 +1,8 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { AuthRepository } from '../../repository/auth.repository'
-import { MeInfoType } from '../../core/models'
-import { UserBaseType } from '../../../../../../library/models'
-import { NotFoundException } from '@nestjs/common'
-import { User } from '@prisma/client'
+import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
+import { AuthRepository } from "../../repository/auth.repository"
+import { MeInfoType } from "../../core/models"
+import { NotFoundException } from "@nestjs/common"
+import { User } from "@prisma/client"
 
 export class MeInfoCommand {
 	constructor(public readonly userId: string) {}

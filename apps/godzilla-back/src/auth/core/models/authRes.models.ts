@@ -1,9 +1,9 @@
 export type LoginResType = {
-  accessToken: string;
-};
+	accessToken: string
+}
 
 export type MeInfoType = {
-  userId: string;
-  username: string;
-  email: string;
-};
+	userId: string
+	username: string
+	email: string
+}

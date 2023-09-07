@@ -1,5 +1,5 @@
-import { v4 } from 'uuid'
-import { add } from 'date-fns'
+import { v4 } from "uuid"
+import { add } from "date-fns"
 
 export type ActivateCodeType = {
 	readonly codeActivated: string

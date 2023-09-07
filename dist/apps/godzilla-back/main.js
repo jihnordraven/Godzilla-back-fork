@@ -35,21 +35,18 @@ exports.ActivateCodeAdapter = ActivateCodeAdapter;
 /*!***********************************************************!*\
   !*** ./apps/godzilla-back/src/adapters/bcrypt.adapter.ts ***!
   \***********************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BcryptAdapter = void 0;
-const bcrypt_1 = __importDefault(__webpack_require__(/*! bcrypt */ "bcrypt"));
+const bcrypt_1 = __webpack_require__(/*! bcrypt */ "bcrypt");
 class BcryptAdapter {
-    async hushGenerate(password) {
-        return await bcrypt_1.default.hash(password, 10);
+    async hash(data) {
+        return (0, bcrypt_1.hash)(data.password, 8);
     }
-    async hushCompare(password, hush) {
-        return await bcrypt_1.default.compare(password, hush);
+    async compare(data) {
+        return (0, bcrypt_1.compare)(data.password, data.hash);
     }
 }
 exports.BcryptAdapter = BcryptAdapter;
@@ -99,10 +96,10 @@ const nodemailer_1 = __webpack_require__(/*! nodemailer */ "nodemailer");
 class MailerAdapter {
     async options(options) {
         const transport = (0, nodemailer_1.createTransport)({
-            service: 'gmail',
+            service: "gmail",
             auth: {
-                user: 'jihnordraven@gmail.com',
-                pass: 'htsubscpzoymrwce'
+                user: "jihnordraven@gmail.com",
+                pass: "htsubscpzoymrwce"
             }
         });
         await transport.sendMail(options);
@@ -110,16 +107,16 @@ class MailerAdapter {
     async sendConfirmCode({ email, code }) {
         return this.options({
             to: email,
-            from: 'jihnordraven@gmail.com',
-            subject: 'Email confirmaiton',
+            from: "jihnordraven@gmail.com",
+            subject: "Email confirmaiton",
             html: `<a href='http://localhost:5000/api/v1/auth/registration-confirmaiton?code=${code}'>Confirm email</a>`
         });
     }
     async sendPasswordCode({ email, code }) {
         return this.options({
             to: email,
-            from: 'jihnordraven@gmail.com',
-            subject: 'Password recovery',
+            from: "jihnordraven@gmail.com",
+            subject: "Password recovery",
             html: `<a href='http://localhost:5000/api/v1/auth/password-recovery-confirm?activateCode?${code}'>Password recovery</a>`
         });
     }
@@ -177,14 +174,14 @@ __decorate([
 ], AppController.prototype, "getHello", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
-    (0, swagger_1.ApiOperation)({ summary: 'Delete all data in all' }),
-    (0, common_1.Delete)('testing/all-data'),
+    (0, swagger_1.ApiOperation)({ summary: "Delete all data in all" }),
+    (0, common_1.Delete)("testing/all-data"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "testingAllDelete", null);
 exports.AppController = AppController = __decorate([
-    (0, swagger_1.ApiTags)('Testing'),
+    (0, swagger_1.ApiTags)("Testing"),
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [typeof (_a = typeof app_service_1.AppService !== "undefined" && app_service_1.AppService) === "function" ? _a : Object])
 ], AppController);
@@ -207,19 +204,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppModule = void 0;
-const config_1 = __webpack_require__(/*! ./config/config */ "./apps/godzilla-back/src/config/config.ts");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const app_controller_1 = __webpack_require__(/*! ./app.controller */ "./apps/godzilla-back/src/app.controller.ts");
 const app_service_1 = __webpack_require__(/*! ./app.service */ "./apps/godzilla-back/src/app.service.ts");
 const auth_module_1 = __webpack_require__(/*! ./auth/auth.module */ "./apps/godzilla-back/src/auth/auth.module.ts");
 const prisma_module_1 = __webpack_require__(/*! ./prisma/prisma.module */ "./apps/godzilla-back/src/prisma/prisma.module.ts");
 const strategies_1 = __webpack_require__(/*! ./auth/guards-handlers/strategies */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/index.ts");
-const strategies = [strategies_1.LocalStrategy, strategies_1.JwtAccessStrategy, strategies_1.JwtRefreshStrategy];
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const strategies = [strategies_1.LocalStrategy, strategies_1.JwtAccessStrategy, strategies_1.JwtRefreshStrategy, strategies_1.GoogleStrategy];
 let AppModule = exports.AppModule = class AppModule {
 };
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [config_1.CONFIG.START_MODULE, auth_module_1.AuthModule, prisma_module_1.PrismaModule],
+        imports: [config_1.ConfigModule.forRoot({ isGlobal: true }), auth_module_1.AuthModule, prisma_module_1.PrismaModule],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService, ...strategies]
     })
@@ -244,22 +241,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a;
+var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const config_1 = __webpack_require__(/*! ./config/config */ "./apps/godzilla-back/src/config/config.ts");
-const models_1 = __webpack_require__(/*! ../../../library/models */ "./library/models/index.ts");
+const models_1 = __webpack_require__(/*! libs/models */ "./libs/models/index.ts");
 const prisma_service_1 = __webpack_require__(/*! ./prisma/prisma.service */ "./apps/godzilla-back/src/prisma/prisma.service.ts");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 let AppService = exports.AppService = class AppService {
-    constructor(prisma) {
+    constructor(config, prisma) {
+        this.config = config;
         this.prisma = prisma;
     }
     async getHello() {
-        return await `Start server on ${config_1.CONFIG.PORT} port`;
+        return `Start server on ${this.config.get("PORT")} port`;
     }
     async deleteAll() {
-        if (config_1.CONFIG.DEPLOY === 'TEST') {
+        if (this.config.get("DEPLOY") === "TEST") {
             for (const table of Object.values(models_1.AllTablesEnum)) {
                 if (this.prisma[table]) {
                     await this.prisma[table].deleteMany();
@@ -267,13 +265,13 @@ let AppService = exports.AppService = class AppService {
             }
         }
         else {
-            throw new common_1.ForbiddenException('This endpoint is closed for prodaction');
+            throw new common_1.ForbiddenException("This endpoint is closed for prodaction");
         }
     }
 };
 exports.AppService = AppService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _b : Object])
 ], AppService);
 
 
@@ -310,11 +308,14 @@ let AuthService = exports.AuthService = class AuthService {
         this.bcrypt = bcrypt;
     }
     async validateLogin(email, password) {
-        const user = await this.authRepository.findUserToEmail(email);
+        const user = await this.authRepository.findUserToEmail({ email });
         if (!user || user.isBlocked === true) {
             return null;
         }
-        const validatePassword = await this.bcrypt.hushCompare(password, user.hashPassword);
+        const validatePassword = await this.bcrypt.compare({
+            password,
+            hash: user.hashPassword
+        });
         if (!validatePassword) {
             return null;
         }
@@ -332,7 +333,7 @@ let AuthService = exports.AuthService = class AuthService {
         if (!activeSession) {
             return false;
         }
-        const lastActiveToSecond = Number(Date.parse(activeSession.sessionExpired).toString().slice(0, 10));
+        const lastActiveToSecond = Number(Date.parse(activeSession.expires).toString().slice(0, 10));
         if (expiredSecondsToken - lastActiveToSecond > 2) {
             return false;
         }
@@ -354,11 +355,120 @@ let AuthService = exports.AuthService = class AuthService {
         console.log(email);
         return false;
     }
+    async googleRegister(dto, { userIP, userAgent }) {
+        const user = await this.commandBus.execute(new commands_1.GoogleRegisterCommand(dto));
+        return this.commandBus.execute(new commands_1.LoginCommand({ userIP, userAgent, userID: user.userId }));
+    }
 };
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof cqrs_1.CommandBus !== "undefined" && cqrs_1.CommandBus) === "function" ? _b : Object, typeof (_c = typeof adapters_1.BcryptAdapter !== "undefined" && adapters_1.BcryptAdapter) === "function" ? _c : Object])
 ], AuthService);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/application/commands/google-register.command.ts":
+/*!*************************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/application/commands/google-register.command.ts ***!
+  \*************************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoogleRegisterHandler = exports.GoogleRegisterCommand = void 0;
+const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
+const auth_repository_1 = __webpack_require__(/*! ../../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
+class GoogleRegisterCommand {
+    constructor(dto) {
+        this.dto = dto;
+    }
+}
+exports.GoogleRegisterCommand = GoogleRegisterCommand;
+let GoogleRegisterHandler = exports.GoogleRegisterHandler = class GoogleRegisterHandler {
+    constructor(authRepository) {
+        this.authRepository = authRepository;
+    }
+    async execute({ dto }) {
+        const isGoogleProfile = await this.authRepository.findUniqueGoogleProfileByProviderId({
+            providerId: dto.providerId
+        });
+        if (!isGoogleProfile) {
+            const isUser = await this.authRepository.findUserToEmail({
+                email: dto.email
+            });
+            if (!isUser) {
+                const isUsernameTaken = await this.authRepository.checkUniqueUsername({
+                    username: dto.username || ""
+                });
+                if (!isUsernameTaken) {
+                    const username = dto.username
+                        ? dto.username
+                        : await this.authRepository.generateClientUsername();
+                    const user = await this.authRepository.localRegister({
+                        email: dto.email,
+                        username
+                    });
+                    const googleProfile = await this.authRepository.googleRegister({
+                        email: dto.email,
+                        username,
+                        providerId: dto.providerId,
+                        provider: dto.provider,
+                        displayName: dto.displayName,
+                        userId: user.id
+                    });
+                    return googleProfile;
+                }
+                else {
+                    const username = dto.username
+                        ? dto.username
+                        : await this.authRepository.generateClientUsername();
+                    const user = await this.authRepository.localRegister({
+                        email: dto.email,
+                        username: username,
+                        hashPassword: ""
+                    });
+                    const googleProfile = await this.authRepository.googleRegister({
+                        email: dto.email,
+                        username,
+                        providerId: dto.providerId,
+                        provider: dto.provider,
+                        displayName: dto.displayName,
+                        userId: user.id
+                    });
+                    return googleProfile;
+                }
+            }
+            const username = dto.username
+                ? dto.username
+                : await this.authRepository.generateClientUsername();
+            const googleProfile = await this.authRepository.googleRegister({
+                email: dto.email,
+                username,
+                providerId: dto.providerId,
+                provider: dto.provider,
+                displayName: dto.displayName,
+                userId: isUser.id
+            });
+            return googleProfile;
+        }
+        return isGoogleProfile;
+    }
+};
+exports.GoogleRegisterHandler = GoogleRegisterHandler = __decorate([
+    (0, cqrs_1.CommandHandler)(GoogleRegisterCommand),
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object])
+], GoogleRegisterHandler);
 
 
 /***/ }),
@@ -393,6 +503,7 @@ __exportStar(__webpack_require__(/*! ./new-password.command */ "./apps/godzilla-
 __exportStar(__webpack_require__(/*! ./password-recovery-resend.command */ "./apps/godzilla-back/src/auth/application/commands/password-recovery-resend.command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./logout-command */ "./apps/godzilla-back/src/auth/application/commands/logout-command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./meInfo-command */ "./apps/godzilla-back/src/auth/application/commands/meInfo-command.ts"), exports);
+__exportStar(__webpack_require__(/*! ./google-register.command */ "./apps/godzilla-back/src/auth/application/commands/google-register.command.ts"), exports);
 
 
 /***/ }),
@@ -418,8 +529,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LocalRegisterHandler = exports.LocalRegisterCommand = void 0;
 const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const auth_repository_1 = __webpack_require__(/*! ../../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
-const adapters_1 = __webpack_require__(/*! ../../../adapters */ "./apps/godzilla-back/src/adapters/index.ts");
 const mailer_adapter_1 = __webpack_require__(/*! ../../../adapters/mailer.adapter */ "./apps/godzilla-back/src/adapters/mailer.adapter.ts");
+const adapters_1 = __webpack_require__(/*! apps/godzilla-back/src/adapters */ "./apps/godzilla-back/src/adapters/index.ts");
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 class LocalRegisterCommand {
     constructor(createUser) {
         this.createUser = createUser;
@@ -433,7 +545,15 @@ let LocalRegisterHandler = exports.LocalRegisterHandler = class LocalRegisterHan
         this.mailerAdapter = mailerAdapter;
     }
     async execute({ createUser: { email, username, password } }) {
-        const hashPassword = await this.bcryptAdapter.hushGenerate(password);
+        const isEmail = await this.authRepository.checkUniqueEmail({ email });
+        if (isEmail)
+            throw new common_1.ConflictException("User with this email is already registered");
+        const isUsername = await this.authRepository.checkUniqueUsername({
+            username
+        });
+        if (isUsername)
+            throw new common_1.ConflictException("User with this username is already registered");
+        const hashPassword = await this.bcryptAdapter.hash({ password });
         const user = await this.authRepository.localRegister({
             email,
             username,
@@ -442,7 +562,7 @@ let LocalRegisterHandler = exports.LocalRegisterHandler = class LocalRegisterHan
         const emailCode = await this.authRepository.createEmailCode({
             userId: user.id
         });
-        await this.mailerAdapter.sendConfirmCode({ email, code: emailCode.codeActivated });
+        await this.mailerAdapter.sendConfirmCode({ email, code: emailCode.code });
     }
 };
 exports.LocalRegisterHandler = LocalRegisterHandler = __decorate([
@@ -469,14 +589,14 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b;
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LoginUseCase = exports.LoginCommand = void 0;
 const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const auth_repository_1 = __webpack_require__(/*! ../../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
 const date_fns_1 = __webpack_require__(/*! date-fns */ "date-fns");
-const config_1 = __webpack_require__(/*! ../../../config/config */ "./apps/godzilla-back/src/config/config.ts");
 const jwt_1 = __webpack_require__(/*! @nestjs/jwt */ "@nestjs/jwt");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 class LoginCommand {
     constructor(authObject) {
         this.authObject = authObject;
@@ -484,27 +604,33 @@ class LoginCommand {
 }
 exports.LoginCommand = LoginCommand;
 let LoginUseCase = exports.LoginUseCase = class LoginUseCase {
-    constructor(authRepository, jwtService) {
+    constructor(config, authRepository, jwtService) {
+        this.config = config;
         this.authRepository = authRepository;
         this.jwtService = jwtService;
     }
-    async execute(command) {
-        const { authObject } = command;
+    async execute({ authObject }) {
         const expiresTime = (0, date_fns_1.add)(new Date(), {
-            seconds: +config_1.CONFIG.EXPIRES_REFRESH,
+            seconds: this.config.get("EXPIRES_REFRESH")
         }).toString();
         const newSession = await this.authRepository.addNewSession(authObject, expiresTime);
-        const refreshToken = this.jwtService.sign({ sessionId: newSession.id, userId: newSession.userOwnerId }, { secret: config_1.CONFIG.JWT_REFRESH_SECRET, expiresIn: +config_1.CONFIG.EXPIRES_REFRESH });
-        const accessToken = this.jwtService.sign({ userId: newSession.userOwnerId }, { secret: config_1.CONFIG.JWT_ACCESS_SECRET, expiresIn: +config_1.CONFIG.EXPIRES_ACCESS });
+        const refreshToken = this.jwtService.sign({ sessionId: newSession.id, userId: newSession.userOwnerId }, {
+            secret: this.config.get("JWT_REFRESH_SECRET"),
+            expiresIn: `${this.config.get("EXPIRES_REFRESH")}s`
+        });
+        const accessToken = this.jwtService.sign({ userId: newSession.userOwnerId }, {
+            secret: this.config.get("JWT_ACCESS_SECRET"),
+            expiresIn: `${this.config.get("EXPIRES_ACCESS")}s`
+        });
         return {
             refreshToken: refreshToken,
-            accessToken: accessToken,
+            accessToken: accessToken
         };
     }
 };
 exports.LoginUseCase = LoginUseCase = __decorate([
     (0, cqrs_1.CommandHandler)(LoginCommand),
-    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _b : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _b : Object, typeof (_c = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _c : Object])
 ], LoginUseCase);
 
 
@@ -651,17 +777,19 @@ let NewPasswordHandler = exports.NewPasswordHandler = class NewPasswordHandler {
         this.bcryptAdapter = bcryptAdapter;
     }
     async execute({ data: { newPassword, recoveryCode } }) {
-        const code = await this.authRepository.findOneCodeByCode({
+        const emailCode = await this.authRepository.findOneCodeByCode({
             code: recoveryCode
         });
-        if (!code)
-            throw new common_1.BadRequestException('Invalid token');
-        const isCodeExpired = new Date(code.codeActivatedExpired) < new Date();
+        if (!emailCode)
+            throw new common_1.BadRequestException("Invalid token");
+        const isCodeExpired = new Date(emailCode.exp) < new Date();
         if (isCodeExpired)
-            throw new common_1.ForbiddenException('Code has expired');
-        const hashPassword = await this.bcryptAdapter.hushGenerate(newPassword);
+            throw new common_1.ForbiddenException("Code has expired");
+        const hashPassword = await this.bcryptAdapter.hash({
+            password: newPassword
+        });
         await this.authRepository.createNewPassword({
-            userId: code.userOwnerId,
+            userId: emailCode.userId,
             hashPassword
         });
     }
@@ -711,9 +839,9 @@ let PasswordRecoveryResendHandler = exports.PasswordRecoveryResendHandler = clas
         this.activateCodeAdapter = activateCodeAdapter;
     }
     async execute({ data: { email } }) {
-        const user = await this.authRepository.findUserToEmail(email);
+        const user = await this.authRepository.findUserToEmail({ email });
         if (!user)
-            throw new common_1.NotFoundException('User not found');
+            throw new common_1.NotFoundException("User not found");
         await this.authRepository.deactivateAllEmailCodes({ userId: user.id });
         const passwordCode = await this.activateCodeAdapter.createCode();
         await this.mailerAdapter.sendPasswordCode({
@@ -767,9 +895,9 @@ let PasswordRecoveryHandler = exports.PasswordRecoveryHandler = class PasswordRe
         this.mailerAdapter = mailerAdapter;
     }
     async execute({ data: { email } }) {
-        const user = await this.authRepository.findUserToEmail(email);
+        const user = await this.authRepository.findUserToEmail({ email });
         if (!user)
-            throw new common_1.NotFoundException('User not found');
+            throw new common_1.NotFoundException("User not found");
         const passwordCode = await this.activateCodeAdapter.createCode();
         await this.mailerAdapter.sendPasswordCode({
             email,
@@ -820,16 +948,18 @@ let ResendEmailCodeHandler = exports.ResendEmailCodeHandler = class ResendEmailC
         this.mailerAdapter = mailerAdapter;
     }
     async execute({ data }) {
-        const user = await this.authRepository.findUserToEmail(data.email);
+        const user = await this.authRepository.findUserToEmail({
+            email: data.email
+        });
         if (!user)
-            throw new common_1.NotFoundException('User not found');
+            throw new common_1.NotFoundException("User not found");
         await this.authRepository.deactivateAllEmailCodes({ userId: user.id });
         const emailCode = await this.authRepository.createEmailCode({
             userId: user.id
         });
         await this.mailerAdapter.sendConfirmCode({
             email: user.email,
-            code: emailCode.codeActivated
+            code: emailCode.code
         });
     }
 };
@@ -860,7 +990,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -869,10 +999,14 @@ const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const express_1 = __webpack_require__(/*! express */ "express");
 const dto_1 = __webpack_require__(/*! ./core/dto */ "./apps/godzilla-back/src/auth/core/dto/index.ts");
 const guards_1 = __webpack_require__(/*! ./guards-handlers/guards */ "./apps/godzilla-back/src/auth/guards-handlers/guards/index.ts");
-const auth_1 = __webpack_require__(/*! ../../../../library/swagger/auth */ "./library/swagger/auth/index.ts");
-const helpers_1 = __webpack_require__(/*! ../../../../library/helpers */ "./library/helpers/index.ts");
+const auth_1 = __webpack_require__(/*! @libs/swagger/auth */ "./libs/swagger/auth/index.ts");
+const helpers_1 = __webpack_require__(/*! @libs/helpers */ "./libs/helpers/index.ts");
 const commands_1 = __webpack_require__(/*! ./application/commands */ "./apps/godzilla-back/src/auth/application/commands/index.ts");
 const auth_service_1 = __webpack_require__(/*! ./application/auth.service */ "./apps/godzilla-back/src/auth/application/auth.service.ts");
+const google_guard_1 = __webpack_require__(/*! ./guards-handlers/guards/google.guard */ "./apps/godzilla-back/src/auth/guards-handlers/guards/google.guard.ts");
+const decorators_1 = __webpack_require__(/*! @libs/common/decorators */ "./libs/common/decorators/index.ts");
+const strategies_1 = __webpack_require__(/*! ./guards-handlers/strategies */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/index.ts");
+const enums_1 = __webpack_require__(/*! @libs/models/enums */ "./libs/models/enums.ts");
 let AuthController = exports.AuthController = class AuthController {
     constructor(commandBus, authService) {
         this.commandBus = commandBus;
@@ -897,14 +1031,14 @@ let AuthController = exports.AuthController = class AuthController {
     async userUpdateNewPass({ newPassword, recoveryCode }) {
         await this.commandBus.execute(new commands_1.NewPasswordCommand({ recoveryCode, newPassword }));
     }
-    async userAuthorization(body, jwtPayload, userIP, nameDevice, response) {
+    async userAuthorization(body, jwtPayload, userIP, userAgent, response) {
         const authObjectDTO = {
-            ip: userIP,
-            nameDevice: nameDevice,
+            userIP,
+            userAgent,
             userID: jwtPayload.userId
         };
         const tokensObject = await this.commandBus.execute(new commands_1.LoginCommand(authObjectDTO));
-        response.cookie('refreshToken', tokensObject.refreshToken, {
+        response.cookie("refreshToken", tokensObject.refreshToken, {
             httpOnly: true,
             secure: true
         });
@@ -912,14 +1046,14 @@ let AuthController = exports.AuthController = class AuthController {
             accessToken: tokensObject.accessToken
         };
     }
-    async userRefreshToken(jwtPayload, userIP, nameDevice, response) {
+    async userRefreshToken(jwtPayload, userIP, userAgent, response) {
         const authObjectDTO = {
-            ip: userIP,
-            nameDevice: nameDevice,
+            userIP,
+            userAgent,
             userID: jwtPayload.userId
         };
         const tokensObject = await this.authService.refreshFlow(authObjectDTO, jwtPayload.userId, jwtPayload.sessionId);
-        response.cookie('refreshToken', tokensObject.refreshToken, {
+        response.cookie("refreshToken", tokensObject.refreshToken, {
             httpOnly: true,
             secure: true
         });
@@ -929,16 +1063,32 @@ let AuthController = exports.AuthController = class AuthController {
     }
     async userLogout(jwtPayload, response) {
         await this.commandBus.execute(new commands_1.LogoutCommand(jwtPayload.userId, jwtPayload.sessionId));
-        response.clearCookie('refreshToken');
+        response.clearCookie("refreshToken");
     }
     async meInfo(jwtPayload) {
         return await this.commandBus.execute(new commands_1.MeInfoCommand(jwtPayload.userId));
+    }
+    async google() { }
+    async googleCallback(dto, userIP, userAgent, res) {
+        const tokens = await this.authService.googleRegister(dto, {
+            userIP,
+            userAgent
+        });
+        return await this.setTokensToResponse({ tokens, res });
+    }
+    async setTokensToResponse({ tokens, res }) {
+        res.cookie(enums_1.TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none"
+        });
+        res.json({ accessToken: tokens.accessToken });
     }
 };
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     (0, auth_1.SwaggerToRegistration)(),
-    (0, common_1.Post)('registration'),
+    (0, common_1.Post)("registration"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [typeof (_c = typeof dto_1.CreateUserDto !== "undefined" && dto_1.CreateUserDto) === "function" ? _c : Object]),
@@ -947,7 +1097,7 @@ __decorate([
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     (0, auth_1.SwaggerToRegistrationEmailResending)(),
-    (0, common_1.Post)('registration-email-resending'),
+    (0, common_1.Post)("registration-email-resending"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -956,8 +1106,8 @@ __decorate([
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiExcludeEndpoint)(),
-    (0, common_1.Get)('registration-confirmation'),
-    __param(0, (0, common_1.Query)('code', new common_1.ParseUUIDPipe())),
+    (0, common_1.Get)("registration-confirmation"),
+    __param(0, (0, common_1.Query)("code", new common_1.ParseUUIDPipe())),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, typeof (_f = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _f : Object]),
@@ -966,7 +1116,7 @@ __decorate([
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     (0, auth_1.SwaggerToPasswordRecovery)(),
-    (0, common_1.Post)('password-recovery'),
+    (0, common_1.Post)("password-recovery"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [typeof (_g = typeof dto_1.PassRecoveryDto !== "undefined" && dto_1.PassRecoveryDto) === "function" ? _g : Object]),
@@ -975,7 +1125,7 @@ __decorate([
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     (0, auth_1.SwaggerToPasswordEmailResending)(),
-    (0, common_1.Post)('password-email-resending'),
+    (0, common_1.Post)("password-email-resending"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -984,8 +1134,8 @@ __decorate([
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiExcludeEndpoint)(),
-    (0, common_1.Get)('new-password-confirmation/:codeActivate'),
-    __param(0, (0, common_1.Param)('codeActivate', new common_1.ParseUUIDPipe())),
+    (0, common_1.Get)("new-password-confirmation/:codeActivate"),
+    __param(0, (0, common_1.Param)("codeActivate", new common_1.ParseUUIDPipe())),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
@@ -993,7 +1143,7 @@ __decorate([
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     (0, auth_1.SwaggerToNewPassword)(),
-    (0, common_1.Post)('new-password'),
+    (0, common_1.Post)("new-password"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [typeof (_h = typeof dto_1.NewPassUpdateDto !== "undefined" && dto_1.NewPassUpdateDto) === "function" ? _h : Object]),
@@ -1003,11 +1153,11 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.UseGuards)(guards_1.LocalAuthGuard),
     (0, auth_1.SwaggerToAuthorization)(),
-    (0, common_1.Post)('login'),
+    (0, common_1.Post)("login"),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, helpers_1.JwtPayloadDecorator)()),
     __param(2, (0, common_1.Ip)()),
-    __param(3, (0, common_1.Headers)('user-agent')),
+    __param(3, (0, decorators_1.UserAgentDecorator)()),
     __param(4, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [typeof (_j = typeof auth_1.LoginReqDto !== "undefined" && auth_1.LoginReqDto) === "function" ? _j : Object, typeof (_k = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _k : Object, String, String, typeof (_l = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _l : Object]),
@@ -1017,20 +1167,20 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.UseGuards)(guards_1.JwtRefreshGuard),
     (0, auth_1.SwaggerToRefreshToken)(),
-    (0, common_1.Get)('refresh-token'),
+    (0, common_1.Get)("refresh-token"),
     __param(0, (0, helpers_1.JwtPayloadDecorator)()),
     __param(1, (0, common_1.Ip)()),
-    __param(2, (0, common_1.Headers)('user-agent')),
+    __param(2, (0, decorators_1.UserAgentDecorator)()),
     __param(3, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_o = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _o : Object, String, String, typeof (_p = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _p : Object]),
+    __metadata("design:paramtypes", [typeof (_o = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _o : Object, String, Object, typeof (_p = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _p : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userRefreshToken", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     (0, common_1.UseGuards)(guards_1.JwtRefreshGuard),
     (0, auth_1.SwaggerToLogout)(),
-    (0, common_1.Post)('logout'),
+    (0, common_1.Post)("logout"),
     __param(0, (0, helpers_1.JwtPayloadDecorator)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -1041,15 +1191,33 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.UseGuards)(guards_1.JwtAccessGuard),
     (0, auth_1.SwaggerToMeInfo)(),
-    (0, common_1.Get)('me'),
+    (0, common_1.Get)("me"),
     __param(0, (0, helpers_1.JwtPayloadDecorator)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [typeof (_s = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _s : Object]),
     __metadata("design:returntype", typeof (_t = typeof Promise !== "undefined" && Promise) === "function" ? _t : Object)
 ], AuthController.prototype, "meInfo", null);
+__decorate([
+    (0, common_1.Get)("google"),
+    (0, common_1.UseGuards)(google_guard_1.GoogleGuard),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "google", null);
+__decorate([
+    (0, common_1.Get)("google/callback"),
+    (0, common_1.UseGuards)(google_guard_1.GoogleGuard),
+    __param(0, (0, decorators_1.GooglePayloadDecorator)()),
+    __param(1, (0, common_1.Ip)()),
+    __param(2, (0, decorators_1.UserAgentDecorator)()),
+    __param(3, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_u = typeof strategies_1.IGoogleUser !== "undefined" && strategies_1.IGoogleUser) === "function" ? _u : Object, String, String, typeof (_v = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _v : Object]),
+    __metadata("design:returntype", typeof (_w = typeof Promise !== "undefined" && Promise) === "function" ? _w : Object)
+], AuthController.prototype, "googleCallback", null);
 exports.AuthController = AuthController = __decorate([
-    (0, swagger_1.ApiTags)('Auth'),
-    (0, common_1.Controller)('auth'),
+    (0, swagger_1.ApiTags)("Auth"),
+    (0, common_1.Controller)("auth"),
     __metadata("design:paramtypes", [typeof (_a = typeof cqrs_1.CommandBus !== "undefined" && cqrs_1.CommandBus) === "function" ? _a : Object, typeof (_b = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _b : Object])
 ], AuthController);
 
@@ -1096,7 +1264,8 @@ const commandHandlers = [
     commands_1.PasswordRecoveryResendHandler,
     commands_1.NewPasswordHandler,
     commands_1.MeInfoUseCase,
-    commands_1.LogoutUseCase
+    commands_1.LogoutUseCase,
+    commands_1.GoogleRegisterHandler
 ];
 const adapters = [adapters_1.BcryptAdapter, adapters_1.MailerAdapter, adapters_1.ActivateCodeAdapter];
 const modules = [cqrs_1.CqrsModule, prisma_module_1.PrismaModule, passport_1.PassportModule, jwt_1.JwtModule];
@@ -1150,7 +1319,7 @@ let CheckedConfirmCode = exports.CheckedConfirmCode = class CheckedConfirmCode {
         return await this.authService.checkedConfirmCode(value);
     }
     defaultMessage() {
-        return 'Code $value is not valid';
+        return "Code $value is not valid";
     }
 };
 exports.CheckedConfirmCode = CheckedConfirmCode = __decorate([
@@ -1192,7 +1361,7 @@ let CheckedEmailToBase = exports.CheckedEmailToBase = class CheckedEmailToBase {
         return await this.authService.checkedEmailToBase(value);
     }
     defaultMessage() {
-        return 'User with this email $value does not exist';
+        return "User with this email $value does not exist";
     }
 };
 exports.CheckedEmailToBase = CheckedEmailToBase = __decorate([
@@ -1234,7 +1403,7 @@ let CheckedUniqueEmail = exports.CheckedUniqueEmail = class CheckedUniqueEmail {
         return await this.authService.checkedUniqueEmail(value);
     }
     defaultMessage() {
-        return 'Mail $value is already in use';
+        return "Mail $value is already in use";
     }
 };
 exports.CheckedUniqueEmail = CheckedUniqueEmail = __decorate([
@@ -1276,7 +1445,7 @@ let CheckedUniqueUsername = exports.CheckedUniqueUsername = class CheckedUniqueU
         return await this.authService.checkedUniqueUsername(value);
     }
     defaultMessage() {
-        return 'Username $value is already in use';
+        return "Username $value is already in use";
     }
 };
 exports.CheckedUniqueUsername = CheckedUniqueUsername = __decorate([
@@ -1336,7 +1505,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateUserDto = void 0;
-const helpers_1 = __webpack_require__(/*! ../../../../../../library/helpers */ "./library/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 class CreateUserDto {
@@ -1349,12 +1518,12 @@ __decorate([
     (0, class_validator_1.Length)(6, 30),
     (0, class_validator_1.IsNotEmpty)(),
     (0, swagger_1.ApiProperty)({
-        description: 'User username',
+        description: "User username",
         type: String,
         minLength: 6,
         maxLength: 30,
-        pattern: '^[0-9A-Za-z.\\-_]+$',
-        nullable: false,
+        pattern: "^[0-9A-Za-z.\\-_]+$",
+        nullable: false
     }),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "username", void 0);
@@ -1364,10 +1533,10 @@ __decorate([
     (0, class_validator_1.Matches)(/^[A-Za-z\d-\.]+@([\w-]+.)+[\w-]{2,4}$/),
     (0, class_validator_1.IsNotEmpty)(),
     (0, swagger_1.ApiProperty)({
-        description: 'User email',
+        description: "User email",
         type: String,
-        pattern: '^[A-Za-z\\d-\\.]+@([\\w-]+.)+[\\w-]{2,4}$',
-        nullable: false,
+        pattern: "^[A-Za-z\\d-\\.]+@([\\w-]+.)+[\\w-]{2,4}$",
+        nullable: false
     }),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "email", void 0);
@@ -1378,12 +1547,12 @@ __decorate([
     (0, class_validator_1.Length)(6, 20),
     (0, class_validator_1.IsNotEmpty)(),
     (0, swagger_1.ApiProperty)({
-        description: 'User password',
+        description: "User password",
         type: String,
         minLength: 6,
         maxLength: 20,
-        pattern: '^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+$',
-        nullable: false,
+        pattern: "^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~]+$",
+        nullable: false
     }),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "password", void 0);
@@ -1410,7 +1579,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EmailResendingDto = void 0;
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const helpers_1 = __webpack_require__(/*! ../../../../../../library/helpers */ "./library/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 class EmailResendingDto {
 }
@@ -1420,9 +1589,9 @@ __decorate([
     (0, class_validator_1.IsUUID)(),
     (0, class_validator_1.IsString)(),
     (0, swagger_1.ApiProperty)({
-        description: 'Identifier of an inactive user',
+        description: "Identifier of an inactive user",
         type: String,
-        nullable: false,
+        nullable: false
     }),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
@@ -1481,7 +1650,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.NewPassUpdateDto = void 0;
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const helpers_1 = __webpack_require__(/*! ../../../../../../library/helpers */ "./library/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 class NewPassUpdateDto {
 }
@@ -1493,12 +1662,12 @@ __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     (0, swagger_1.ApiProperty)({
-        description: 'New user password',
+        description: "New user password",
         type: String,
         minLength: 6,
         maxLength: 20,
-        pattern: '^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+$',
-        nullable: false,
+        pattern: "^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~]+$",
+        nullable: false
     }),
     __metadata("design:type", String)
 ], NewPassUpdateDto.prototype, "newPassword", void 0);
@@ -1508,9 +1677,9 @@ __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     (0, swagger_1.ApiProperty)({
-        description: 'Activation code sent to email',
+        description: "Activation code sent to email",
         type: String,
-        nullable: false,
+        nullable: false
     }),
     __metadata("design:type", String)
 ], NewPassUpdateDto.prototype, "recoveryCode", void 0);
@@ -1537,7 +1706,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PassRecoveryDto = void 0;
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const helpers_1 = __webpack_require__(/*! ../../../../../../library/helpers */ "./library/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 class PassRecoveryDto {
 }
@@ -1547,10 +1716,10 @@ __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.Matches)(/^[A-Za-z\d-\.]+@([\w-]+.)+[\w-]{2,4}$/),
     (0, swagger_1.ApiProperty)({
-        description: 'Email of registered user useremail@company.com',
+        description: "Email of registered user useremail@company.com",
         type: String,
-        pattern: '^[A-Za-z\\d-\\.]+@([\\w-]+.)+[\\w-]{2,4}$',
-        nullable: false,
+        pattern: "^[A-Za-z\\d-\\.]+@([\\w-]+.)+[\\w-]{2,4}$",
+        nullable: false
     }),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
@@ -1578,7 +1747,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PasswordEmailResendingDto = void 0;
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const helpers_1 = __webpack_require__(/*! ../../../../../../library/helpers */ "./library/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 class PasswordEmailResendingDto {
 }
@@ -1588,13 +1757,39 @@ __decorate([
     (0, class_validator_1.IsUUID)(),
     (0, class_validator_1.IsString)(),
     (0, swagger_1.ApiProperty)({
-        description: 'The ID of the user who requested the new password',
+        description: "The ID of the user who requested the new password",
         type: String,
-        nullable: false,
+        nullable: false
     }),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], PasswordEmailResendingDto.prototype, "userId", void 0);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/guards-handlers/guards/google.guard.ts":
+/*!****************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/guards-handlers/guards/google.guard.ts ***!
+  \****************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoogleGuard = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+let GoogleGuard = exports.GoogleGuard = class GoogleGuard extends (0, passport_1.AuthGuard)("google") {
+};
+exports.GoogleGuard = GoogleGuard = __decorate([
+    (0, common_1.Injectable)()
+], GoogleGuard);
 
 
 /***/ }),
@@ -1645,7 +1840,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.JwtAccessGuard = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-let JwtAccessGuard = exports.JwtAccessGuard = class JwtAccessGuard extends (0, passport_1.AuthGuard)('jwt') {
+let JwtAccessGuard = exports.JwtAccessGuard = class JwtAccessGuard extends (0, passport_1.AuthGuard)("jwt") {
 };
 exports.JwtAccessGuard = JwtAccessGuard = __decorate([
     (0, common_1.Injectable)()
@@ -1671,7 +1866,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.JwtRefreshGuard = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-let JwtRefreshGuard = exports.JwtRefreshGuard = class JwtRefreshGuard extends (0, passport_1.AuthGuard)('refreshToken') {
+let JwtRefreshGuard = exports.JwtRefreshGuard = class JwtRefreshGuard extends (0, passport_1.AuthGuard)("refreshToken") {
 };
 exports.JwtRefreshGuard = JwtRefreshGuard = __decorate([
     (0, common_1.Injectable)()
@@ -1697,11 +1892,72 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LocalAuthGuard = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-let LocalAuthGuard = exports.LocalAuthGuard = class LocalAuthGuard extends (0, passport_1.AuthGuard)('local') {
+let LocalAuthGuard = exports.LocalAuthGuard = class LocalAuthGuard extends (0, passport_1.AuthGuard)("local") {
 };
 exports.LocalAuthGuard = LocalAuthGuard = __decorate([
     (0, common_1.Injectable)()
 ], LocalAuthGuard);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/guards-handlers/strategies/google.strategy.ts":
+/*!***********************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/guards-handlers/strategies/google.strategy.ts ***!
+  \***********************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoogleStrategy = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+const passport_google_oauth20_1 = __webpack_require__(/*! passport-google-oauth20 */ "passport-google-oauth20");
+let GoogleStrategy = exports.GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrategy)(passport_google_oauth20_1.Strategy) {
+    constructor(config) {
+        super({
+            clientID: config.get("GOOGLE_CLIENT_ID"),
+            clientSecret: config.get("GOOGLE_CLIENT_SECRET"),
+            callbackURL: "http://localhost:5000/api/v1/auth/google/callback",
+            scope: ["profile", "email"]
+        });
+        this.config = config;
+    }
+    async validate(accessToken, refreshToken, profile, done) {
+        try {
+            const user = {
+                providerId: profile.id,
+                email: profile.emails[0].value,
+                username: profile.username,
+                displayName: profile.displayName,
+                provider: profile.provider,
+                photo: profile.photos[0].value,
+                accessToken,
+                refreshToken
+            };
+            done(null, user);
+        }
+        catch (err) {
+            done(err);
+            throw new common_1.UnauthorizedException(err);
+        }
+    }
+};
+exports.GoogleStrategy = GoogleStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+], GoogleStrategy);
 
 
 /***/ }),
@@ -1731,6 +1987,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__webpack_require__(/*! ./local.strategy */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/local.strategy.ts"), exports);
 __exportStar(__webpack_require__(/*! ./jwtAccess.strategy */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/jwtAccess.strategy.ts"), exports);
 __exportStar(__webpack_require__(/*! ./jwtRefresh.strategy */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/jwtRefresh.strategy.ts"), exports);
+__exportStar(__webpack_require__(/*! ./google.strategy */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/google.strategy.ts"), exports);
 
 
 /***/ }),
@@ -1751,27 +2008,29 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.JwtAccessStrategy = exports.AccessCookieExtractor = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const passport_jwt_1 = __webpack_require__(/*! passport-jwt */ "passport-jwt");
 const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-const config_1 = __webpack_require__(/*! ../../../config/config */ "./apps/godzilla-back/src/config/config.ts");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const AccessCookieExtractor = function (req) {
     let token = null;
-    if (req && req.cookies['refreshToken']) {
+    if (req && req.cookies["refreshToken"]) {
         token = passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken()(req);
     }
     return token;
 };
 exports.AccessCookieExtractor = AccessCookieExtractor;
 let JwtAccessStrategy = exports.JwtAccessStrategy = class JwtAccessStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
-    constructor() {
+    constructor(config) {
         super({
-            jwtFromRequest: exports.AccessCookieExtractor,
+            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: config_1.CONFIG.JWT_ACCESS_SECRET,
+            secretOrKey: config.getOrThrow("JWT_ACCESS_SECRET")
         });
+        this.config = config;
     }
     async validate(payload) {
         return { userId: payload.userId };
@@ -1779,7 +2038,7 @@ let JwtAccessStrategy = exports.JwtAccessStrategy = class JwtAccessStrategy exte
 };
 exports.JwtAccessStrategy = JwtAccessStrategy = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
 ], JwtAccessStrategy);
 
 
@@ -1801,35 +2060,36 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a;
+var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.JwtRefreshStrategy = void 0;
 const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
 const passport_jwt_1 = __webpack_require__(/*! passport-jwt */ "passport-jwt");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const auth_service_1 = __webpack_require__(/*! ../../application/auth.service */ "./apps/godzilla-back/src/auth/application/auth.service.ts");
-const helpers_1 = __webpack_require__(/*! ../../../../../../library/helpers */ "./library/helpers/index.ts");
-const config_1 = __webpack_require__(/*! ../../../config/config */ "./apps/godzilla-back/src/config/config.ts");
-let JwtRefreshStrategy = exports.JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, 'refreshToken') {
-    constructor(authService) {
+const helpers_1 = __webpack_require__(/*! @libs/helpers */ "./libs/helpers/index.ts");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+let JwtRefreshStrategy = exports.JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "refreshToken") {
+    constructor(config, authService) {
         super({
             jwtFromRequest: helpers_1.RefreshCookieExtractor,
             ignoreExpiration: false,
-            secretOrKey: config_1.CONFIG.JWT_REFRESH_SECRET,
+            secretOrKey: config.get("JWT_REFRESH_SECRET")
         });
+        this.config = config;
         this.authService = authService;
     }
     async validate(payload) {
         const validateSession = await this.authService.checkedActiveSession(payload.sessionId, payload.iat);
         if (!validateSession) {
-            throw new common_1.UnauthorizedException('Session expired');
+            throw new common_1.UnauthorizedException("Session expired");
         }
         return { userId: payload.userId, sessionId: payload.sessionId };
     }
 };
 exports.JwtRefreshStrategy = JwtRefreshStrategy = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _b : Object])
 ], JwtRefreshStrategy);
 
 
@@ -1861,7 +2121,7 @@ const auth_service_1 = __webpack_require__(/*! ../../application/auth.service */
 let LocalStrategy = exports.LocalStrategy = class LocalStrategy extends (0, passport_1.PassportStrategy)(passport_local_1.Strategy) {
     constructor(authService) {
         super({
-            usernameField: 'email',
+            usernameField: "email"
         });
         this.authService = authService;
     }
@@ -1906,48 +2166,50 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
     constructor(prisma) {
         this.prisma = prisma;
         this.logger = new common_1.Logger(AuthRepository_1.name);
+        this.clientsCounter = 0;
     }
     async localRegister(data) {
+        console.log(data);
         const user = await this.prisma.user
             .create({
             data: {
                 email: data.email,
                 username: data.username,
-                hashPassword: data.hashPassword
+                hashPassword: data.hashPassword ? data.hashPassword : ""
             }
         })
             .catch((err) => this.logger.error((0, colorette_1.red)(err)));
         if (!user)
-            throw new common_1.InternalServerErrorException('Unable to create user');
+            throw new common_1.InternalServerErrorException("Unable to create user");
         return user;
     }
-    async createEmailCode(data) {
-        const emailCode = await this.prisma.confirmUser
+    async createEmailCode({ userId }) {
+        const emailCode = await this.prisma.emailConfirmCode
             .create({
             data: {
-                codeActivated: (0, uuid_1.v4)(),
-                codeActivatedExpired: (0, date_fns_1.add)(new Date(), { minutes: 10 }).toString(),
-                userOwnerId: data.userId
+                code: (0, uuid_1.v4)(),
+                exp: (0, date_fns_1.add)(new Date(), { minutes: 10 }),
+                userId
             }
         })
             .catch((err) => this.logger.error((0, colorette_1.red)(err)));
         if (!emailCode)
-            throw new common_1.InternalServerErrorException('Unable to create email code');
+            throw new common_1.InternalServerErrorException("Unable to create email code");
         return emailCode;
     }
     async findOneCodeByCode({ code }) {
-        return this.prisma.confirmUser.findUnique({ where: { codeActivated: code } });
+        return this.prisma.emailConfirmCode.findUnique({ where: { code } });
     }
     async findUniqueUserById({ userId }) {
         return this.prisma.user.findUnique({ where: { id: userId } });
     }
     async deactivateAllEmailCodes({ userId }) {
-        await this.prisma.confirmUser.updateMany({
-            where: { userOwnerId: userId },
-            data: { isActive: false }
+        await this.prisma.emailConfirmCode.updateMany({
+            where: { userId },
+            data: { isUsed: true }
         });
     }
-    async findUserToEmail(email) {
+    async findUserToEmail({ email }) {
         return await this.prisma.user.findUnique({
             where: { email }
         });
@@ -1959,11 +2221,23 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
         }));
     }
     async addNewSession(authObject, expiresTime) {
-        return await this.prisma.sessions.create({
-            data: {
-                ip: authObject.ip,
-                title: authObject.nameDevice,
-                sessionExpired: expiresTime,
+        const _session = await this.prisma.sessions.findFirst({
+            where: {
+                userIP: authObject.userIP,
+                userAgent: authObject.userAgent,
+                userOwnerId: authObject.userID
+            }
+        });
+        const userAgent = _session?.userAgent ?? "";
+        return this.prisma.sessions.upsert({
+            where: { userAgent },
+            update: {
+                expires: expiresTime
+            },
+            create: {
+                userIP: authObject.userIP,
+                userAgent: authObject.userAgent,
+                expires: expiresTime,
                 userOwnerId: authObject.userID
             }
         });
@@ -1979,36 +2253,52 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
     async deleteSession(sessionId) {
         await this.prisma.sessions.delete({ where: { id: sessionId } });
     }
+    async generateClientUsername() {
+        const id = (0, uuid_1.v4)();
+        const username = `client-${id.substring(0, 8)}`;
+        const isUsernameUnique = await this.checkUniqueUsername({ username });
+        if (isUsernameUnique) {
+            return this.generateClientUsername();
+        }
+        else {
+            return username;
+        }
+    }
+    async checkUniqueUsername({ username = "" }) {
+        return Boolean(await this.prisma.user.findUnique({ where: { username } }));
+    }
+    async checkUniqueEmail({ email }) {
+        return Boolean(await this.prisma.user.findUnique({ where: { email } }));
+    }
+    async googleRegister(dto) {
+        return this.prisma.googleProfile.create({
+            data: {
+                providerId: dto.providerId,
+                email: dto.email,
+                username: dto.username,
+                provider: dto.provider,
+                displayName: dto.displayName || null,
+                userId: dto.userId
+            }
+        });
+    }
+    async confirmUserEmail({ userId }) {
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { isConfirmed: true }
+        });
+    }
+    async findOneGoogleProfileByUserID({ userID }) {
+        return this.prisma.googleProfile.findUnique({ where: { userId: userID } });
+    }
+    async findUniqueGoogleProfileByProviderId({ providerId }) {
+        return this.prisma.googleProfile.findUnique({ where: { providerId } });
+    }
 };
 exports.AuthRepository = AuthRepository = AuthRepository_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object])
 ], AuthRepository);
-
-
-/***/ }),
-
-/***/ "./apps/godzilla-back/src/config/config.ts":
-/*!*************************************************!*\
-  !*** ./apps/godzilla-back/src/config/config.ts ***!
-  \*************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CONFIG = void 0;
-const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
-exports.CONFIG = {
-    START_MODULE: config_1.ConfigModule.forRoot({ isGlobal: true }),
-    DEPLOY: process.env.DEPLOY,
-    PORT: process.env.PORT,
-    MAIL_URL_USER: process.env.MAIL_URL_USER,
-    MAIL_URL_PASS: process.env.MAIL_URL_PASS,
-    JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
-    JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
-    EXPIRES_ACCESS: process.env.EXPIRES_ACCESS,
-    EXPIRES_REFRESH: process.env.EXPIRES_REFRESH,
-};
 
 
 /***/ }),
@@ -2024,59 +2314,47 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.prisma = void 0;
-const config_1 = __webpack_require__(/*! ./config/config */ "./apps/godzilla-back/src/config/config.ts");
 const core_1 = __webpack_require__(/*! @nestjs/core */ "@nestjs/core");
 const app_module_1 = __webpack_require__(/*! ./app.module */ "./apps/godzilla-back/src/app.module.ts");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const client_1 = __webpack_require__(/*! @prisma/client */ "@prisma/client");
-const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
-const config_swagger_1 = __webpack_require__(/*! ../../../library/swagger/config.swagger */ "./library/swagger/config.swagger.ts");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const validatePipeOptions_1 = __webpack_require__(/*! ../../../library/errors-handlers/validatePipeOptions */ "./library/errors-handlers/validatePipeOptions.ts");
-const http_exception_filter_1 = __webpack_require__(/*! ../../../library/errors-handlers/http-exception.filter */ "./library/errors-handlers/http-exception.filter.ts");
+const errors_handlers_1 = __webpack_require__(/*! @libs/errors-handlers */ "./libs/errors-handlers/index.ts");
 const cookie_parser_1 = __importDefault(__webpack_require__(/*! cookie-parser */ "cookie-parser"));
-exports.prisma = new client_1.PrismaClient();
+const swagger_setup_1 = __webpack_require__(/*! @libs/swagger/swagger.setup */ "./libs/swagger/swagger.setup.ts");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const colorette_1 = __webpack_require__(/*! colorette */ "colorette");
 async function appLoader() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.enableCors({
         origin: [
-            'http://localhost:3000',
-            'https://godzilla-front.vercel.app/',
-            'https://godzillagram.com/',
+            "http://localhost:3000",
+            "https://godzilla-front.vercel.app/",
+            "https://godzillagram.com/"
         ],
         credentials: true,
-        methods: ['GET', 'PUT', 'POST', 'DELETE'],
+        methods: ["GET", "PUT", "POST", "DELETE"]
     });
     app.use((0, cookie_parser_1.default)());
     (0, class_validator_1.useContainer)(app.select(app_module_1.AppModule), { fallbackOnErrors: true });
-    app.useGlobalPipes(new common_1.ValidationPipe(validatePipeOptions_1.validatePipeOptions));
-    app.useGlobalFilters(new http_exception_filter_1.HttpExceptionFilter());
-    app.setGlobalPrefix('api/v1');
-    if (config_1.CONFIG.DEPLOY === 'TEST') {
-        const options = config_swagger_1.swaggerConfig.development;
-        const document = swagger_1.SwaggerModule.createDocument(app, options);
-        swagger_1.SwaggerModule.setup('api/v1/testing', app, document, {
-            customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
-            customJs: [
-                'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.js',
-            ],
-        });
-    }
-    await app.listen(config_1.CONFIG.PORT || 3000);
+    app.useGlobalPipes(new common_1.ValidationPipe(errors_handlers_1.validatePipeOptions));
+    app.setGlobalPrefix("api/v1");
+    const config = app.get(config_1.ConfigService);
+    const DEPLOY = config.get("DEPLOY");
+    const PORT = config.get("PORT");
+    if (DEPLOY === "TEST")
+        (0, swagger_setup_1.swaggerSetup)(app);
+    await app.listen(PORT);
+    return { PORT, DEPLOY };
 }
 async function bootstrap() {
+    const logger = new common_1.Logger(bootstrap.name);
     try {
-        await appLoader();
-        await exports.prisma.$connect();
-        console.log(`Start server on ${config_1.CONFIG.PORT} port`);
+        const { PORT, DEPLOY } = await appLoader();
+        logger.log((0, colorette_1.blue)(`Server is running on ${PORT} with status: ${DEPLOY}`));
     }
-    catch (e) {
-        throw e;
-    }
-    finally {
-        await exports.prisma.$disconnect();
+    catch (err) {
+        logger.error((0, colorette_1.red)(`Unable to launch server. Learn more at: ${err}`));
+        throw new common_1.InternalServerErrorException();
     }
 }
 bootstrap();
@@ -2146,67 +2424,101 @@ exports.PrismaService = PrismaService = __decorate([
 
 /***/ }),
 
-/***/ "./library/errors-handlers/http-exception.filter.ts":
-/*!**********************************************************!*\
-  !*** ./library/errors-handlers/http-exception.filter.ts ***!
-  \**********************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ "./libs/common/decorators/google-payload.decorator.ts":
+/*!************************************************************!*\
+  !*** ./libs/common/decorators/google-payload.decorator.ts ***!
+  \************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.HttpExceptionFilter = void 0;
+exports.GooglePayloadDecorator = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-let HttpExceptionFilter = exports.HttpExceptionFilter = class HttpExceptionFilter {
-    catch(exception, host) {
-        const ctx = host.switchToHttp();
-        const response = ctx.getResponse();
-        const request = ctx.getRequest();
-        const status = exception.getStatus();
-        if (status === 500) {
-            response.status(status).json(exception);
-        }
-        if (status === 400) {
-            const errors = exception.getResponse();
-            if (typeof errors.message === 'string') {
-                response.status(status).json({
-                    errorsMessages: [
-                        { message: errors.message, field: 'Data is not valid' },
-                    ],
-                });
-                return;
-            }
-            response.status(status).json({
-                errorsMessages: errors.message.map((x) => {
-                    return { message: x.message, field: x.field };
-                }),
-            });
-        }
-        else {
-            response.status(status).json({
-                statusCode: status,
-                timestamp: new Date().toISOString(),
-                path: request.url,
-            });
-        }
-    }
-};
-exports.HttpExceptionFilter = HttpExceptionFilter = __decorate([
-    (0, common_1.Catch)(common_1.HttpException)
-], HttpExceptionFilter);
+exports.GooglePayloadDecorator = (0, common_1.createParamDecorator)((key, ctx) => {
+    const req = ctx.switchToHttp().getRequest();
+    return key ? req.user[key] : req.user;
+});
 
 
 /***/ }),
 
-/***/ "./library/errors-handlers/validatePipeOptions.ts":
+/***/ "./libs/common/decorators/index.ts":
+/*!*****************************************!*\
+  !*** ./libs/common/decorators/index.ts ***!
+  \*****************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__webpack_require__(/*! ./google-payload.decorator */ "./libs/common/decorators/google-payload.decorator.ts"), exports);
+__exportStar(__webpack_require__(/*! ./user-agent.decorator */ "./libs/common/decorators/user-agent.decorator.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./libs/common/decorators/user-agent.decorator.ts":
 /*!********************************************************!*\
-  !*** ./library/errors-handlers/validatePipeOptions.ts ***!
+  !*** ./libs/common/decorators/user-agent.decorator.ts ***!
   \********************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UserAgentDecorator = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+exports.UserAgentDecorator = (0, common_1.createParamDecorator)((_, ctx) => {
+    const req = ctx.switchToHttp().getRequest();
+    return req.headers["user-agent"];
+});
+
+
+/***/ }),
+
+/***/ "./libs/errors-handlers/index.ts":
+/*!***************************************!*\
+  !*** ./libs/errors-handlers/index.ts ***!
+  \***************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__webpack_require__(/*! ./validatePipeOptions */ "./libs/errors-handlers/validatePipeOptions.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./libs/errors-handlers/validatePipeOptions.ts":
+/*!*****************************************************!*\
+  !*** ./libs/errors-handlers/validatePipeOptions.ts ***!
+  \*****************************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2223,21 +2535,21 @@ exports.validatePipeOptions = {
             constraintsKey.forEach((key) => {
                 errorsForResponse.push({
                     message: e.constraints[key],
-                    field: e.property,
+                    field: e.property
                 });
             });
         });
         throw new common_1.BadRequestException(errorsForResponse);
-    },
+    }
 };
 
 
 /***/ }),
 
-/***/ "./library/helpers/index.ts":
-/*!**********************************!*\
-  !*** ./library/helpers/index.ts ***!
-  \**********************************/
+/***/ "./libs/helpers/index.ts":
+/*!*******************************!*\
+  !*** ./libs/helpers/index.ts ***!
+  \*******************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2256,17 +2568,17 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-__exportStar(__webpack_require__(/*! ./trimDecorator */ "./library/helpers/trimDecorator.ts"), exports);
-__exportStar(__webpack_require__(/*! ./payloadDecorator */ "./library/helpers/payloadDecorator.ts"), exports);
-__exportStar(__webpack_require__(/*! ./refreshCookieExtractor */ "./library/helpers/refreshCookieExtractor.ts"), exports);
+__exportStar(__webpack_require__(/*! ./trimDecorator */ "./libs/helpers/trimDecorator.ts"), exports);
+__exportStar(__webpack_require__(/*! ./payloadDecorator */ "./libs/helpers/payloadDecorator.ts"), exports);
+__exportStar(__webpack_require__(/*! ./refreshCookieExtractor */ "./libs/helpers/refreshCookieExtractor.ts"), exports);
 
 
 /***/ }),
 
-/***/ "./library/helpers/payloadDecorator.ts":
-/*!*********************************************!*\
-  !*** ./library/helpers/payloadDecorator.ts ***!
-  \*********************************************/
+/***/ "./libs/helpers/payloadDecorator.ts":
+/*!******************************************!*\
+  !*** ./libs/helpers/payloadDecorator.ts ***!
+  \******************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2281,10 +2593,10 @@ exports.JwtPayloadDecorator = (0, common_1.createParamDecorator)((data, ctx) => 
 
 /***/ }),
 
-/***/ "./library/helpers/refreshCookieExtractor.ts":
-/*!***************************************************!*\
-  !*** ./library/helpers/refreshCookieExtractor.ts ***!
-  \***************************************************/
+/***/ "./libs/helpers/refreshCookieExtractor.ts":
+/*!************************************************!*\
+  !*** ./libs/helpers/refreshCookieExtractor.ts ***!
+  \************************************************/
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -2293,7 +2605,7 @@ exports.RefreshCookieExtractor = void 0;
 const RefreshCookieExtractor = function (req) {
     let token = null;
     if (req && req.cookies) {
-        token = req.cookies['refreshToken'];
+        token = req.cookies["refreshToken"];
     }
     return token;
 };
@@ -2302,10 +2614,10 @@ exports.RefreshCookieExtractor = RefreshCookieExtractor;
 
 /***/ }),
 
-/***/ "./library/helpers/trimDecorator.ts":
-/*!******************************************!*\
-  !*** ./library/helpers/trimDecorator.ts ***!
-  \******************************************/
+/***/ "./libs/helpers/trimDecorator.ts":
+/*!***************************************!*\
+  !*** ./libs/helpers/trimDecorator.ts ***!
+  \***************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2313,17 +2625,35 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TrimDecorator = void 0;
 const class_transformer_1 = __webpack_require__(/*! class-transformer */ "class-transformer");
 function TrimDecorator() {
-    return (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? value.trim() : value);
+    return (0, class_transformer_1.Transform)(({ value }) => (typeof value === "string" ? value.trim() : value));
 }
 exports.TrimDecorator = TrimDecorator;
 
 
 /***/ }),
 
-/***/ "./library/models/index.ts":
-/*!*********************************!*\
-  !*** ./library/models/index.ts ***!
-  \*********************************/
+/***/ "./libs/models/enums.ts":
+/*!******************************!*\
+  !*** ./libs/models/enums.ts ***!
+  \******************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TokensEnum = void 0;
+var TokensEnum;
+(function (TokensEnum) {
+    TokensEnum["REFRESH_TOKEN"] = "refreshToken";
+    TokensEnum["ACCESS_TOKEN"] = "accessToken";
+})(TokensEnum || (exports.TokensEnum = TokensEnum = {}));
+
+
+/***/ }),
+
+/***/ "./libs/models/index.ts":
+/*!******************************!*\
+  !*** ./libs/models/index.ts ***!
+  \******************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2342,15 +2672,15 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-__exportStar(__webpack_require__(/*! ./main.models */ "./library/models/main.models.ts"), exports);
+__exportStar(__webpack_require__(/*! ./main.models */ "./libs/models/main.models.ts"), exports);
 
 
 /***/ }),
 
-/***/ "./library/models/main.models.ts":
-/*!***************************************!*\
-  !*** ./library/models/main.models.ts ***!
-  \***************************************/
+/***/ "./libs/models/main.models.ts":
+/*!************************************!*\
+  !*** ./libs/models/main.models.ts ***!
+  \************************************/
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -2371,10 +2701,10 @@ var AllTablesEnum;
 
 /***/ }),
 
-/***/ "./library/swagger/auth/SwaggerToAuthorization.ts":
-/*!********************************************************!*\
-  !*** ./library/swagger/auth/SwaggerToAuthorization.ts ***!
-  \********************************************************/
+/***/ "./libs/swagger/auth/SwaggerToAuthorization.ts":
+/*!*****************************************************!*\
+  !*** ./libs/swagger/auth/SwaggerToAuthorization.ts ***!
+  \*****************************************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2396,21 +2726,21 @@ class LoginReqDto {
 exports.LoginReqDto = LoginReqDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User email',
+        description: "User email",
         type: String,
-        pattern: '^[A-Za-z\\d-\\.]+@([\\w-]+.)+[\\w-]{2,4}$',
-        nullable: false,
+        pattern: "^[A-Za-z\\d-\\.]+@([\\w-]+.)+[\\w-]{2,4}$",
+        nullable: false
     }),
     __metadata("design:type", String)
 ], LoginReqDto.prototype, "email", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User password',
+        description: "User password",
         type: String,
         minLength: 6,
         maxLength: 20,
-        pattern: '^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+$',
-        nullable: false,
+        pattern: "^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~]+$",
+        nullable: false
     }),
     __metadata("design:type", String)
 ], LoginReqDto.prototype, "password", void 0);
@@ -2418,22 +2748,22 @@ class LoginResDto {
 }
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'Access token',
+        description: "Access token"
     }),
     __metadata("design:type", String)
 ], LoginResDto.prototype, "accessToken", void 0);
 function SwaggerToAuthorization() {
-    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: 'User authorization' }), (0, swagger_1.ApiResponse)({
+    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: "User authorization" }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.OK,
-        description: 'Returns JWT accessToken in body and JWT refreshToken ' +
-            'in cookie (http-only, secure)',
-        type: LoginResDto,
+        description: "Returns JWT accessToken in body and JWT refreshToken " +
+            "in cookie (http-only, secure)",
+        type: LoginResDto
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.BAD_REQUEST,
-        description: 'If the inputModel has incorrect values',
+        description: "If the inputModel has incorrect values"
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.UNAUTHORIZED,
-        description: 'If the password or login is wrong',
+        description: "If the password or login is wrong"
     }));
 }
 exports.SwaggerToAuthorization = SwaggerToAuthorization;
@@ -2441,10 +2771,10 @@ exports.SwaggerToAuthorization = SwaggerToAuthorization;
 
 /***/ }),
 
-/***/ "./library/swagger/auth/SwaggerToLogout.ts":
-/*!*************************************************!*\
-  !*** ./library/swagger/auth/SwaggerToLogout.ts ***!
-  \*************************************************/
+/***/ "./libs/swagger/auth/SwaggerToLogout.ts":
+/*!**********************************************!*\
+  !*** ./libs/swagger/auth/SwaggerToLogout.ts ***!
+  \**********************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2453,12 +2783,12 @@ exports.SwaggerToLogout = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 function SwaggerToLogout() {
-    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: 'User is logout' }), (0, swagger_1.ApiResponse)({
+    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: "User is logout" }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.NO_CONTENT,
-        description: 'User is logout',
+        description: "User is logout"
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.UNAUTHORIZED,
-        description: 'If the JWT refreshToken inside cookie is missing, expired or incorrect',
+        description: "If the JWT refreshToken inside cookie is missing, expired or incorrect"
     }));
 }
 exports.SwaggerToLogout = SwaggerToLogout;
@@ -2466,10 +2796,10 @@ exports.SwaggerToLogout = SwaggerToLogout;
 
 /***/ }),
 
-/***/ "./library/swagger/auth/SwaggerToMeInfo.ts":
-/*!*************************************************!*\
-  !*** ./library/swagger/auth/SwaggerToMeInfo.ts ***!
-  \*************************************************/
+/***/ "./libs/swagger/auth/SwaggerToMeInfo.ts":
+/*!**********************************************!*\
+  !*** ./libs/swagger/auth/SwaggerToMeInfo.ts ***!
+  \**********************************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2501,13 +2831,13 @@ __decorate([
     __metadata("design:type", String)
 ], MeInfoDto.prototype, "email", void 0);
 function SwaggerToMeInfo() {
-    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: 'Get information about current user' }), (0, swagger_1.ApiResponse)({
+    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: "Get information about current user" }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.OK,
-        description: 'User info',
-        type: MeInfoDto,
+        description: "User info",
+        type: MeInfoDto
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.UNAUTHORIZED,
-        description: 'If the JWT accessToken missing, expired or incorrect',
+        description: "If the JWT accessToken missing, expired or incorrect"
     }));
 }
 exports.SwaggerToMeInfo = SwaggerToMeInfo;
@@ -2515,10 +2845,10 @@ exports.SwaggerToMeInfo = SwaggerToMeInfo;
 
 /***/ }),
 
-/***/ "./library/swagger/auth/SwaggerToNewPassword.ts":
-/*!******************************************************!*\
-  !*** ./library/swagger/auth/SwaggerToNewPassword.ts ***!
-  \******************************************************/
+/***/ "./libs/swagger/auth/SwaggerToNewPassword.ts":
+/*!***************************************************!*\
+  !*** ./libs/swagger/auth/SwaggerToNewPassword.ts ***!
+  \***************************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2527,13 +2857,13 @@ exports.SwaggerToNewPassword = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 function SwaggerToNewPassword() {
-    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: 'Changing the user password to a new password' }), (0, swagger_1.ApiResponse)({
+    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: "Changing the user password to a new password" }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.NO_CONTENT,
-        description: 'If code is valid and new password is accepted',
+        description: "If code is valid and new password is accepted"
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.BAD_REQUEST,
-        description: 'If the inputModel has incorrect value (for incorrect password length) or ' +
-            'RecoveryCode is incorrect or expired',
+        description: "If the inputModel has incorrect value (for incorrect password length) or " +
+            "RecoveryCode is incorrect or expired"
     }));
 }
 exports.SwaggerToNewPassword = SwaggerToNewPassword;
@@ -2541,10 +2871,10 @@ exports.SwaggerToNewPassword = SwaggerToNewPassword;
 
 /***/ }),
 
-/***/ "./library/swagger/auth/SwaggerToPasswordEmailResending.ts":
-/*!*****************************************************************!*\
-  !*** ./library/swagger/auth/SwaggerToPasswordEmailResending.ts ***!
-  \*****************************************************************/
+/***/ "./libs/swagger/auth/SwaggerToPasswordEmailResending.ts":
+/*!**************************************************************!*\
+  !*** ./libs/swagger/auth/SwaggerToPasswordEmailResending.ts ***!
+  \**************************************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2553,13 +2883,13 @@ exports.SwaggerToPasswordEmailResending = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 function SwaggerToPasswordEmailResending() {
-    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: 'Resending an activation code by email' }), (0, swagger_1.ApiResponse)({
+    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: "Resending an activation code by email" }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.NO_CONTENT,
-        description: 'Input data is accepted.Email with confirmation code will be send to ' +
-            'passed email address',
+        description: "Input data is accepted.Email with confirmation code will be send to " +
+            "passed email address"
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.BAD_REQUEST,
-        description: 'If the inputModel has incorrect values',
+        description: "If the inputModel has incorrect values"
     }));
 }
 exports.SwaggerToPasswordEmailResending = SwaggerToPasswordEmailResending;
@@ -2567,10 +2897,10 @@ exports.SwaggerToPasswordEmailResending = SwaggerToPasswordEmailResending;
 
 /***/ }),
 
-/***/ "./library/swagger/auth/SwaggerToPasswordRecovery.ts":
-/*!***********************************************************!*\
-  !*** ./library/swagger/auth/SwaggerToPasswordRecovery.ts ***!
-  \***********************************************************/
+/***/ "./libs/swagger/auth/SwaggerToPasswordRecovery.ts":
+/*!********************************************************!*\
+  !*** ./libs/swagger/auth/SwaggerToPasswordRecovery.ts ***!
+  \********************************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2579,12 +2909,12 @@ exports.SwaggerToPasswordRecovery = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 function SwaggerToPasswordRecovery() {
-    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: 'Send activation code to change password' }), (0, swagger_1.ApiResponse)({
+    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: "Send activation code to change password" }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.NO_CONTENT,
-        description: 'A new activation code has been successfully sent to your email',
+        description: "A new activation code has been successfully sent to your email"
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.BAD_REQUEST,
-        description: 'Bad request',
+        description: "Bad request"
     }));
 }
 exports.SwaggerToPasswordRecovery = SwaggerToPasswordRecovery;
@@ -2592,10 +2922,10 @@ exports.SwaggerToPasswordRecovery = SwaggerToPasswordRecovery;
 
 /***/ }),
 
-/***/ "./library/swagger/auth/SwaggerToRefreshToken.ts":
-/*!*******************************************************!*\
-  !*** ./library/swagger/auth/SwaggerToRefreshToken.ts ***!
-  \*******************************************************/
+/***/ "./libs/swagger/auth/SwaggerToRefreshToken.ts":
+/*!****************************************************!*\
+  !*** ./libs/swagger/auth/SwaggerToRefreshToken.ts ***!
+  \****************************************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2616,21 +2946,21 @@ class RefreshTokenDto {
 }
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'Access token',
+        description: "Access token"
     }),
     __metadata("design:type", String)
 ], RefreshTokenDto.prototype, "accessToken", void 0);
 function SwaggerToRefreshToken() {
     return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({
-        summary: 'Generation of a new pair of access and refresh tokens',
+        summary: "Generation of a new pair of access and refresh tokens"
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.OK,
-        description: 'Returns JWT accessToken in body and JWT refreshToken ' +
-            'in cookie (http-only, secure)',
-        type: RefreshTokenDto,
+        description: "Returns JWT accessToken in body and JWT refreshToken " +
+            "in cookie (http-only, secure)",
+        type: RefreshTokenDto
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.UNAUTHORIZED,
-        description: 'If the JWT refreshToken inside cookie is missing, expired or incorrect',
+        description: "If the JWT refreshToken inside cookie is missing, expired or incorrect"
     }));
 }
 exports.SwaggerToRefreshToken = SwaggerToRefreshToken;
@@ -2638,10 +2968,10 @@ exports.SwaggerToRefreshToken = SwaggerToRefreshToken;
 
 /***/ }),
 
-/***/ "./library/swagger/auth/SwaggerToRegistration.ts":
-/*!*******************************************************!*\
-  !*** ./library/swagger/auth/SwaggerToRegistration.ts ***!
-  \*******************************************************/
+/***/ "./libs/swagger/auth/SwaggerToRegistration.ts":
+/*!****************************************************!*\
+  !*** ./libs/swagger/auth/SwaggerToRegistration.ts ***!
+  \****************************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2650,14 +2980,14 @@ exports.SwaggerToRegistration = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 function SwaggerToRegistration() {
-    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: 'User registration' }), (0, swagger_1.ApiResponse)({
+    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: "User registration" }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.NO_CONTENT,
-        description: 'Input data is accepted. Email with confirmation code will be send to ' +
-            'passed email address',
+        description: "Input data is accepted. Email with confirmation code will be send to " +
+            "passed email address"
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.BAD_REQUEST,
-        description: 'If the inputModel has incorrect values (in particular if the user with ' +
-            'the given email or password already exists)',
+        description: "If the inputModel has incorrect values (in particular if the user with " +
+            "the given email or password already exists)"
     }));
 }
 exports.SwaggerToRegistration = SwaggerToRegistration;
@@ -2665,10 +2995,10 @@ exports.SwaggerToRegistration = SwaggerToRegistration;
 
 /***/ }),
 
-/***/ "./library/swagger/auth/SwaggerToRegistrationEmailResending.ts":
-/*!*********************************************************************!*\
-  !*** ./library/swagger/auth/SwaggerToRegistrationEmailResending.ts ***!
-  \*********************************************************************/
+/***/ "./libs/swagger/auth/SwaggerToRegistrationEmailResending.ts":
+/*!******************************************************************!*\
+  !*** ./libs/swagger/auth/SwaggerToRegistrationEmailResending.ts ***!
+  \******************************************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2677,13 +3007,13 @@ exports.SwaggerToRegistrationEmailResending = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 function SwaggerToRegistrationEmailResending() {
-    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: 'Resending an activation code by email' }), (0, swagger_1.ApiResponse)({
+    return (0, common_1.applyDecorators)((0, swagger_1.ApiOperation)({ summary: "Resending an activation code by email" }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.NO_CONTENT,
-        description: 'Input data is accepted.Email with confirmation code will be send to ' +
-            'passed email address',
+        description: "Input data is accepted.Email with confirmation code will be send to " +
+            "passed email address"
     }), (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.BAD_REQUEST,
-        description: 'If the inputModel has incorrect values',
+        description: "If the inputModel has incorrect values"
     }));
 }
 exports.SwaggerToRegistrationEmailResending = SwaggerToRegistrationEmailResending;
@@ -2691,10 +3021,10 @@ exports.SwaggerToRegistrationEmailResending = SwaggerToRegistrationEmailResendin
 
 /***/ }),
 
-/***/ "./library/swagger/auth/index.ts":
-/*!***************************************!*\
-  !*** ./library/swagger/auth/index.ts ***!
-  \***************************************/
+/***/ "./libs/swagger/auth/index.ts":
+/*!************************************!*\
+  !*** ./libs/swagger/auth/index.ts ***!
+  \************************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2713,23 +3043,23 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-__exportStar(__webpack_require__(/*! ./SwaggerToPasswordRecovery */ "./library/swagger/auth/SwaggerToPasswordRecovery.ts"), exports);
-__exportStar(__webpack_require__(/*! ./SwaggerToNewPassword */ "./library/swagger/auth/SwaggerToNewPassword.ts"), exports);
-__exportStar(__webpack_require__(/*! ./SwaggerToAuthorization */ "./library/swagger/auth/SwaggerToAuthorization.ts"), exports);
-__exportStar(__webpack_require__(/*! ./SwaggerToRefreshToken */ "./library/swagger/auth/SwaggerToRefreshToken.ts"), exports);
-__exportStar(__webpack_require__(/*! ./SwaggerToRegistration */ "./library/swagger/auth/SwaggerToRegistration.ts"), exports);
-__exportStar(__webpack_require__(/*! ./SwaggerToPasswordEmailResending */ "./library/swagger/auth/SwaggerToPasswordEmailResending.ts"), exports);
-__exportStar(__webpack_require__(/*! ./SwaggerToRegistrationEmailResending */ "./library/swagger/auth/SwaggerToRegistrationEmailResending.ts"), exports);
-__exportStar(__webpack_require__(/*! ./SwaggerToLogout */ "./library/swagger/auth/SwaggerToLogout.ts"), exports);
-__exportStar(__webpack_require__(/*! ./SwaggerToMeInfo */ "./library/swagger/auth/SwaggerToMeInfo.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToPasswordRecovery */ "./libs/swagger/auth/SwaggerToPasswordRecovery.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToNewPassword */ "./libs/swagger/auth/SwaggerToNewPassword.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToAuthorization */ "./libs/swagger/auth/SwaggerToAuthorization.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToRefreshToken */ "./libs/swagger/auth/SwaggerToRefreshToken.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToRegistration */ "./libs/swagger/auth/SwaggerToRegistration.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToPasswordEmailResending */ "./libs/swagger/auth/SwaggerToPasswordEmailResending.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToRegistrationEmailResending */ "./libs/swagger/auth/SwaggerToRegistrationEmailResending.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToLogout */ "./libs/swagger/auth/SwaggerToLogout.ts"), exports);
+__exportStar(__webpack_require__(/*! ./SwaggerToMeInfo */ "./libs/swagger/auth/SwaggerToMeInfo.ts"), exports);
 
 
 /***/ }),
 
-/***/ "./library/swagger/config.swagger.ts":
-/*!*******************************************!*\
-  !*** ./library/swagger/config.swagger.ts ***!
-  \*******************************************/
+/***/ "./libs/swagger/config.swagger.ts":
+/*!****************************************!*\
+  !*** ./libs/swagger/config.swagger.ts ***!
+  \****************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -2738,11 +3068,38 @@ exports.swaggerConfig = void 0;
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 exports.swaggerConfig = {
     development: new swagger_1.DocumentBuilder()
-        .setTitle('Godzilla-back')
-        .setDescription('The godzilla-back API description')
-        .setVersion('1.0')
-        .build(),
+        .setTitle("Godzilla-back")
+        .setDescription("The godzilla-back API description")
+        .setVersion("1.0")
+        .build()
 };
+
+
+/***/ }),
+
+/***/ "./libs/swagger/swagger.setup.ts":
+/*!***************************************!*\
+  !*** ./libs/swagger/swagger.setup.ts ***!
+  \***************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.swaggerSetup = void 0;
+const config_swagger_1 = __webpack_require__(/*! ./config.swagger */ "./libs/swagger/config.swagger.ts");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const swaggerSetup = (app) => {
+    const options = config_swagger_1.swaggerConfig.development;
+    const document = swagger_1.SwaggerModule.createDocument(app, options);
+    swagger_1.SwaggerModule.setup("api/v1/testing", app, document, {
+        customCssUrl: "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css",
+        customJs: [
+            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js",
+            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.js"
+        ]
+    });
+};
+exports.swaggerSetup = swaggerSetup;
 
 
 /***/ }),
@@ -2904,6 +3261,16 @@ module.exports = require("express");
 /***/ ((module) => {
 
 module.exports = require("nodemailer");
+
+/***/ }),
+
+/***/ "passport-google-oauth20":
+/*!******************************************!*\
+  !*** external "passport-google-oauth20" ***!
+  \******************************************/
+/***/ ((module) => {
+
+module.exports = require("passport-google-oauth20");
 
 /***/ }),
 
