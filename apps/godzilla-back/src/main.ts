@@ -14,6 +14,8 @@ import { validatePipeOptions } from "../../../libs/errors-handlers"
 import { swaggerSetup } from "../../../libs/swagger/swagger.setup"
 
 async function appLoader() {
+	const logger: Logger = new Logger("bootstrap")
+
 	const app = await NestFactory.create<INestApplication>(AppModule)
 
 	app.enableCors({
@@ -41,15 +43,13 @@ async function appLoader() {
 	if (DEPLOY === "TEST") swaggerSetup(app)
 
 	await app.listen(PORT)
-
-	return { PORT, DEPLOY }
+	logger.log(blue(`Server is running on ${PORT} with status: ${DEPLOY}`))
 }
 
 async function bootstrap(): Promise<void> {
-	const logger: Logger = new Logger(bootstrap.name)
+	const logger: Logger = new Logger("bootstrap")
 	try {
-		const { PORT, DEPLOY } = await appLoader()
-		logger.log(blue(`Server is running on ${PORT} with status: ${DEPLOY}`))
+		await appLoader()
 	} catch (err: unknown) {
 		logger.error(red(`Unable to launch server. Learn more at: ${err}`))
 		throw new InternalServerErrorException()
