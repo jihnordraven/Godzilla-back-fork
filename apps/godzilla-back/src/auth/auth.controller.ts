@@ -233,8 +233,7 @@ export class AuthController {
 	}): Promise<void> {
 		res.cookie(TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
 			httpOnly: true,
-			secure: true,
-			sameSite: "none"
+			secure: true
 		})
 		res.json({ accessToken: tokens.accessToken })
 	}
