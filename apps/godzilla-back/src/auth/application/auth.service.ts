@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common"
 import { AuthRepository } from "../repository/auth.repository"
-import { JwtAccessPayload } from "@libs/helpers"
+import { JwtAccessPayload } from "../../../../../libs/helpers"
 import { AuthObjectType, TokensObjectType } from "../core/models"
 import { CommandBus } from "@nestjs/cqrs"
 import { GoogleRegisterCommand, LoginCommand, LogoutCommand } from "./commands"

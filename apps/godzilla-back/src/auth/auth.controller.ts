@@ -29,8 +29,12 @@ import {
 	SwaggerToRefreshToken,
 	SwaggerToRegistration,
 	SwaggerToRegistrationEmailResending
-} from "@libs/swagger/auth"
-import { JwtAccessPayload, JwtPayloadDecorator, JwtRefreshPayload } from "@libs/helpers"
+} from "../../../../libs/swagger/auth"
+import {
+	JwtAccessPayload,
+	JwtPayloadDecorator,
+	JwtRefreshPayload
+} from "../../../../libs/helpers"
 import { AuthObjectType, LoginResType, MeInfoType, TokensObjectType } from "./core/models"
 import {
 	LoginCommand,
@@ -44,9 +48,12 @@ import {
 } from "./application/commands"
 import { AuthService } from "./application/auth.service"
 import { GoogleGuard } from "./guards-handlers/guards/google.guard"
-import { GooglePayloadDecorator, UserAgentDecorator } from "@libs/common/decorators"
 import { IGoogleUser } from "./guards-handlers/strategies"
-import { TokensEnum } from "@libs/models/enums"
+import {
+	GooglePayloadDecorator,
+	UserAgentDecorator
+} from "../../../../libs/common/decorators"
+import { TokensEnum } from "libs/models/enums"
 
 type SetTokensToResponseType = {
 	readonly tokens: TokensObjectType
@@ -227,10 +234,7 @@ export class AuthController {
 	private async setTokensToResponse({
 		tokens,
 		res
-	}: {
-		tokens: TokensObjectType
-		res: Response
-	}): Promise<void> {
+	}: SetTokensToResponseType): Promise<void> {
 		res.cookie(TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
 			httpOnly: true,
 			secure: true

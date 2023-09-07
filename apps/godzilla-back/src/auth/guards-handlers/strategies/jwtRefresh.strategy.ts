@@ -2,7 +2,7 @@ import { PassportStrategy } from "@nestjs/passport"
 import { Strategy } from "passport-jwt"
 import { Injectable, UnauthorizedException } from "@nestjs/common"
 import { AuthService } from "../../application/auth.service"
-import { RefreshCookieExtractor } from "@libs/helpers"
+import { RefreshCookieExtractor } from "../../../../../../libs/helpers"
 import { ConfigService } from "@nestjs/config"
 
 @Injectable()

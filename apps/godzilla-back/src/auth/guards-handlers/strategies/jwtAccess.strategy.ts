@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common"
 import { ExtractJwt, Strategy } from "passport-jwt"
 import { PassportStrategy } from "@nestjs/passport"
-import { JwtAccessPayload } from "@libs/helpers"
+import { JwtAccessPayload } from "../../../../../../libs/helpers"
 import { ConfigService } from "@nestjs/config"
 
 export const AccessCookieExtractor = function (req) {

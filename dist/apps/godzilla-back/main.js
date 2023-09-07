@@ -245,9 +245,9 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const models_1 = __webpack_require__(/*! libs/models */ "./libs/models/index.ts");
 const prisma_service_1 = __webpack_require__(/*! ./prisma/prisma.service */ "./apps/godzilla-back/src/prisma/prisma.service.ts");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const models_1 = __webpack_require__(/*! libs/models */ "./libs/models/index.ts");
 let AppService = exports.AppService = class AppService {
     constructor(config, prisma) {
         this.config = config;
@@ -999,14 +999,14 @@ const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const express_1 = __webpack_require__(/*! express */ "express");
 const dto_1 = __webpack_require__(/*! ./core/dto */ "./apps/godzilla-back/src/auth/core/dto/index.ts");
 const guards_1 = __webpack_require__(/*! ./guards-handlers/guards */ "./apps/godzilla-back/src/auth/guards-handlers/guards/index.ts");
-const auth_1 = __webpack_require__(/*! @libs/swagger/auth */ "./libs/swagger/auth/index.ts");
-const helpers_1 = __webpack_require__(/*! @libs/helpers */ "./libs/helpers/index.ts");
+const auth_1 = __webpack_require__(/*! ../../../../libs/swagger/auth */ "./libs/swagger/auth/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../libs/helpers */ "./libs/helpers/index.ts");
 const commands_1 = __webpack_require__(/*! ./application/commands */ "./apps/godzilla-back/src/auth/application/commands/index.ts");
 const auth_service_1 = __webpack_require__(/*! ./application/auth.service */ "./apps/godzilla-back/src/auth/application/auth.service.ts");
 const google_guard_1 = __webpack_require__(/*! ./guards-handlers/guards/google.guard */ "./apps/godzilla-back/src/auth/guards-handlers/guards/google.guard.ts");
-const decorators_1 = __webpack_require__(/*! @libs/common/decorators */ "./libs/common/decorators/index.ts");
 const strategies_1 = __webpack_require__(/*! ./guards-handlers/strategies */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/index.ts");
-const enums_1 = __webpack_require__(/*! @libs/models/enums */ "./libs/models/enums.ts");
+const decorators_1 = __webpack_require__(/*! ../../../../libs/common/decorators */ "./libs/common/decorators/index.ts");
+const enums_1 = __webpack_require__(/*! libs/models/enums */ "./libs/models/enums.ts");
 let AuthController = exports.AuthController = class AuthController {
     constructor(commandBus, authService) {
         this.commandBus = commandBus;
@@ -1079,8 +1079,7 @@ let AuthController = exports.AuthController = class AuthController {
     async setTokensToResponse({ tokens, res }) {
         res.cookie(enums_1.TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
             httpOnly: true,
-            secure: true,
-            sameSite: "none"
+            secure: true
         });
         res.json({ accessToken: tokens.accessToken });
     }
@@ -2067,7 +2066,7 @@ const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport
 const passport_jwt_1 = __webpack_require__(/*! passport-jwt */ "passport-jwt");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const auth_service_1 = __webpack_require__(/*! ../../application/auth.service */ "./apps/godzilla-back/src/auth/application/auth.service.ts");
-const helpers_1 = __webpack_require__(/*! @libs/helpers */ "./libs/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 let JwtRefreshStrategy = exports.JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "refreshToken") {
     constructor(config, authService) {
@@ -2318,11 +2317,11 @@ const core_1 = __webpack_require__(/*! @nestjs/core */ "@nestjs/core");
 const app_module_1 = __webpack_require__(/*! ./app.module */ "./apps/godzilla-back/src/app.module.ts");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const errors_handlers_1 = __webpack_require__(/*! @libs/errors-handlers */ "./libs/errors-handlers/index.ts");
 const cookie_parser_1 = __importDefault(__webpack_require__(/*! cookie-parser */ "cookie-parser"));
-const swagger_setup_1 = __webpack_require__(/*! @libs/swagger/swagger.setup */ "./libs/swagger/swagger.setup.ts");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const colorette_1 = __webpack_require__(/*! colorette */ "colorette");
+const errors_handlers_1 = __webpack_require__(/*! libs/errors-handlers */ "./libs/errors-handlers/index.ts");
+const swagger_setup_1 = __webpack_require__(/*! libs/swagger/swagger.setup */ "./libs/swagger/swagger.setup.ts");
 async function appLoader() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.enableCors({

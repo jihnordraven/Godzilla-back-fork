@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
 import { NewPassUpdateDto } from "../../core/dto"
 import { AuthRepository } from "../../repository/auth.repository"
-import { EmailConfirmCode, User } from "@prisma/client"
+import { EmailConfirmCode } from "@prisma/client"
 import { BadRequestException, ForbiddenException } from "@nestjs/common"
 import { BcryptAdapter } from "../../../adapters"
 

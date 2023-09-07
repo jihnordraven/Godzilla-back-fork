@@ -1,6 +1,5 @@
 import { Injectable, InternalServerErrorException, Logger } from "@nestjs/common"
 import { PrismaService } from "../../prisma/prisma.service"
-import { SessionsBaseType } from "@libs/models"
 import {
 	AuthObjectType,
 	CreateEmailCodeType,

@@ -7,11 +7,11 @@ import {
 	Logger,
 	ValidationPipe
 } from "@nestjs/common"
-import { validatePipeOptions } from "@libs/errors-handlers"
 import cookieParser from "cookie-parser"
-import { swaggerSetup } from "@libs/swagger/swagger.setup"
 import { ConfigService } from "@nestjs/config"
 import { blue, red } from "colorette"
+import { validatePipeOptions } from "libs/errors-handlers"
+import { swaggerSetup } from "libs/swagger/swagger.setup"
 
 async function appLoader() {
 	const app = await NestFactory.create<INestApplication>(AppModule)
