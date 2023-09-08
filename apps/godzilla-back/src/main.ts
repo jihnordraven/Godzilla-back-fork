@@ -23,7 +23,7 @@ const bootstrap = async (): Promise<void> => {
 			origin: [
 				"http://localhost:3000",
 				"https://godzilla-front.vercel.app",
-				"https://godzillagram.com/"
+				"https://godzillagram.com"
 			],
 			credentials: true,
 			methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"]
