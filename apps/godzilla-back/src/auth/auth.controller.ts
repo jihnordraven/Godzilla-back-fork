@@ -53,6 +53,7 @@ import {
 	UserAgentDecorator
 } from "../../../../libs/common/decorators"
 import { TokensEnum } from "../../../../libs/models/enums"
+import { ConfigService } from "@nestjs/config"
 
 type SetTokensToResponseType = {
 	readonly tokens: TokensObjectType
@@ -64,7 +65,8 @@ type SetTokensToResponseType = {
 export class AuthController {
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly authService: AuthService
+		private readonly authService: AuthService,
+		private readonly config: ConfigService
 	) {}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
@@ -227,7 +229,7 @@ export class AuthController {
 			userIP,
 			userAgent
 		})
-		return await this.setTokensToResponse({ tokens, res })
+		return await this.setTokensToResponseGoogle({ tokens, res })
 	}
 
 	private async setTokensToResponse({
@@ -239,5 +241,17 @@ export class AuthController {
 			secure: true
 		})
 		res.json({ accessToken: tokens.accessToken })
+	}
+
+	private async setTokensToResponseGoogle({
+		tokens,
+		res
+	}: SetTokensToResponseType): Promise<any> {
+		res.cookie(TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
+			httpOnly: true,
+			secure: true
+		})
+		res.redirect(this.config.get<string>("GOOGLE_REDIRECT_URL"))
+		return { accessToken: tokens.accessToken }
 	}
 }

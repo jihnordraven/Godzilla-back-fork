@@ -247,7 +247,7 @@ exports.AppService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const prisma_service_1 = __webpack_require__(/*! ./prisma/prisma.service */ "./apps/godzilla-back/src/prisma/prisma.service.ts");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
-const models_1 = __webpack_require__(/*! libs/models */ "./libs/models/index.ts");
+const models_1 = __webpack_require__(/*! ../../../libs/models */ "./libs/models/index.ts");
 let AppService = exports.AppService = class AppService {
     constructor(config, prisma) {
         this.config = config;
@@ -990,7 +990,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -1006,11 +1006,13 @@ const auth_service_1 = __webpack_require__(/*! ./application/auth.service */ "./
 const google_guard_1 = __webpack_require__(/*! ./guards-handlers/guards/google.guard */ "./apps/godzilla-back/src/auth/guards-handlers/guards/google.guard.ts");
 const strategies_1 = __webpack_require__(/*! ./guards-handlers/strategies */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/index.ts");
 const decorators_1 = __webpack_require__(/*! ../../../../libs/common/decorators */ "./libs/common/decorators/index.ts");
-const enums_1 = __webpack_require__(/*! libs/models/enums */ "./libs/models/enums.ts");
+const enums_1 = __webpack_require__(/*! ../../../../libs/models/enums */ "./libs/models/enums.ts");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 let AuthController = exports.AuthController = class AuthController {
-    constructor(commandBus, authService) {
+    constructor(commandBus, authService, config) {
         this.commandBus = commandBus;
         this.authService = authService;
+        this.config = config;
     }
     async localRegister(createUser) {
         await this.commandBus.execute(new commands_1.LocalRegisterCommand(createUser));
@@ -1074,7 +1076,7 @@ let AuthController = exports.AuthController = class AuthController {
             userIP,
             userAgent
         });
-        return await this.setTokensToResponse({ tokens, res });
+        return await this.setTokensToResponseGoogle({ tokens, res });
     }
     async setTokensToResponse({ tokens, res }) {
         res.cookie(enums_1.TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
@@ -1083,6 +1085,14 @@ let AuthController = exports.AuthController = class AuthController {
         });
         res.json({ accessToken: tokens.accessToken });
     }
+    async setTokensToResponseGoogle({ tokens, res }) {
+        res.cookie(enums_1.TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
+            httpOnly: true,
+            secure: true
+        });
+        res.redirect(this.config.get("GOOGLE_REDIRECT_URL"));
+        return { accessToken: tokens.accessToken };
+    }
 };
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
@@ -1090,8 +1100,8 @@ __decorate([
     (0, common_1.Post)("registration"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_c = typeof dto_1.CreateUserDto !== "undefined" && dto_1.CreateUserDto) === "function" ? _c : Object]),
-    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+    __metadata("design:paramtypes", [typeof (_d = typeof dto_1.CreateUserDto !== "undefined" && dto_1.CreateUserDto) === "function" ? _d : Object]),
+    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
 ], AuthController.prototype, "localRegister", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
@@ -1100,7 +1110,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
 ], AuthController.prototype, "userRegistrationResending", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -1109,7 +1119,7 @@ __decorate([
     __param(0, (0, common_1.Query)("code", new common_1.ParseUUIDPipe())),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_f = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _f : Object]),
+    __metadata("design:paramtypes", [String, typeof (_g = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _g : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userRegistrationConfirm", null);
 __decorate([
@@ -1118,7 +1128,7 @@ __decorate([
     (0, common_1.Post)("password-recovery"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_g = typeof dto_1.PassRecoveryDto !== "undefined" && dto_1.PassRecoveryDto) === "function" ? _g : Object]),
+    __metadata("design:paramtypes", [typeof (_h = typeof dto_1.PassRecoveryDto !== "undefined" && dto_1.PassRecoveryDto) === "function" ? _h : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userCreateNewPass", null);
 __decorate([
@@ -1145,7 +1155,7 @@ __decorate([
     (0, common_1.Post)("new-password"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_h = typeof dto_1.NewPassUpdateDto !== "undefined" && dto_1.NewPassUpdateDto) === "function" ? _h : Object]),
+    __metadata("design:paramtypes", [typeof (_j = typeof dto_1.NewPassUpdateDto !== "undefined" && dto_1.NewPassUpdateDto) === "function" ? _j : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userUpdateNewPass", null);
 __decorate([
@@ -1159,8 +1169,8 @@ __decorate([
     __param(3, (0, decorators_1.UserAgentDecorator)()),
     __param(4, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_j = typeof auth_1.LoginReqDto !== "undefined" && auth_1.LoginReqDto) === "function" ? _j : Object, typeof (_k = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _k : Object, String, String, typeof (_l = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _l : Object]),
-    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
+    __metadata("design:paramtypes", [typeof (_k = typeof auth_1.LoginReqDto !== "undefined" && auth_1.LoginReqDto) === "function" ? _k : Object, typeof (_l = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _l : Object, String, String, typeof (_m = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _m : Object]),
+    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
 ], AuthController.prototype, "userAuthorization", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -1172,7 +1182,7 @@ __decorate([
     __param(2, (0, decorators_1.UserAgentDecorator)()),
     __param(3, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_o = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _o : Object, String, Object, typeof (_p = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _p : Object]),
+    __metadata("design:paramtypes", [typeof (_p = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _p : Object, String, Object, typeof (_q = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _q : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userRefreshToken", null);
 __decorate([
@@ -1183,7 +1193,7 @@ __decorate([
     __param(0, (0, helpers_1.JwtPayloadDecorator)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_q = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _q : Object, typeof (_r = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _r : Object]),
+    __metadata("design:paramtypes", [typeof (_r = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _r : Object, typeof (_s = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _s : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userLogout", null);
 __decorate([
@@ -1193,8 +1203,8 @@ __decorate([
     (0, common_1.Get)("me"),
     __param(0, (0, helpers_1.JwtPayloadDecorator)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_s = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _s : Object]),
-    __metadata("design:returntype", typeof (_t = typeof Promise !== "undefined" && Promise) === "function" ? _t : Object)
+    __metadata("design:paramtypes", [typeof (_t = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _t : Object]),
+    __metadata("design:returntype", typeof (_u = typeof Promise !== "undefined" && Promise) === "function" ? _u : Object)
 ], AuthController.prototype, "meInfo", null);
 __decorate([
     (0, common_1.Get)("google"),
@@ -1211,13 +1221,13 @@ __decorate([
     __param(2, (0, decorators_1.UserAgentDecorator)()),
     __param(3, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_u = typeof strategies_1.IGoogleUser !== "undefined" && strategies_1.IGoogleUser) === "function" ? _u : Object, String, String, typeof (_v = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _v : Object]),
-    __metadata("design:returntype", typeof (_w = typeof Promise !== "undefined" && Promise) === "function" ? _w : Object)
+    __metadata("design:paramtypes", [typeof (_v = typeof strategies_1.IGoogleUser !== "undefined" && strategies_1.IGoogleUser) === "function" ? _v : Object, String, String, typeof (_w = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _w : Object]),
+    __metadata("design:returntype", typeof (_x = typeof Promise !== "undefined" && Promise) === "function" ? _x : Object)
 ], AuthController.prototype, "googleCallback", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)("Auth"),
     (0, common_1.Controller)("auth"),
-    __metadata("design:paramtypes", [typeof (_a = typeof cqrs_1.CommandBus !== "undefined" && cqrs_1.CommandBus) === "function" ? _a : Object, typeof (_b = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _b : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof cqrs_1.CommandBus !== "undefined" && cqrs_1.CommandBus) === "function" ? _a : Object, typeof (_b = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _b : Object, typeof (_c = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _c : Object])
 ], AuthController);
 
 
@@ -2319,43 +2329,39 @@ const class_validator_1 = __webpack_require__(/*! class-validator */ "class-vali
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const cookie_parser_1 = __importDefault(__webpack_require__(/*! cookie-parser */ "cookie-parser"));
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const errors_handlers_1 = __webpack_require__(/*! ../../../libs/errors-handlers */ "./libs/errors-handlers/index.ts");
+const swagger_setup_1 = __webpack_require__(/*! ../../../libs/swagger/swagger.setup */ "./libs/swagger/swagger.setup.ts");
 const colorette_1 = __webpack_require__(/*! colorette */ "colorette");
-const errors_handlers_1 = __webpack_require__(/*! libs/errors-handlers */ "./libs/errors-handlers/index.ts");
-const swagger_setup_1 = __webpack_require__(/*! libs/swagger/swagger.setup */ "./libs/swagger/swagger.setup.ts");
-async function appLoader() {
-    const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    app.enableCors({
-        origin: [
-            "http://localhost:3000",
-            "https://godzilla-front.vercel.app/",
-            "https://godzillagram.com/"
-        ],
-        credentials: true,
-        methods: ["GET", "PUT", "POST", "DELETE"]
-    });
-    app.use((0, cookie_parser_1.default)());
-    (0, class_validator_1.useContainer)(app.select(app_module_1.AppModule), { fallbackOnErrors: true });
-    app.useGlobalPipes(new common_1.ValidationPipe(errors_handlers_1.validatePipeOptions));
-    app.setGlobalPrefix("api/v1");
-    const config = app.get(config_1.ConfigService);
-    const DEPLOY = config.get("DEPLOY");
-    const PORT = config.get("PORT");
-    if (DEPLOY === "TEST")
-        (0, swagger_setup_1.swaggerSetup)(app);
-    await app.listen(PORT);
-    return { PORT, DEPLOY };
-}
-async function bootstrap() {
-    const logger = new common_1.Logger(bootstrap.name);
+const bootstrap = async () => {
+    const logger = new common_1.Logger("bootstrap");
     try {
-        const { PORT, DEPLOY } = await appLoader();
+        const app = await core_1.NestFactory.create(app_module_1.AppModule);
+        app.enableCors({
+            origin: [
+                "http://localhost:3000",
+                "https://godzilla-front.vercel.app/",
+                "https://godzillagram.com/"
+            ],
+            credentials: true,
+            methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"]
+        });
+        app.use((0, cookie_parser_1.default)());
+        (0, class_validator_1.useContainer)(app.select(app_module_1.AppModule), { fallbackOnErrors: true });
+        app.useGlobalPipes(new common_1.ValidationPipe(errors_handlers_1.validatePipeOptions));
+        app.setGlobalPrefix("api/v1");
+        const config = app.get(config_1.ConfigService);
+        const DEPLOY = config.get("DEPLOY");
+        const PORT = config.get("PORT");
+        if (DEPLOY === "TEST")
+            (0, swagger_setup_1.swaggerSetup)(app);
+        await app.listen(PORT);
         logger.log((0, colorette_1.blue)(`Server is running on ${PORT} with status: ${DEPLOY}`));
     }
     catch (err) {
         logger.error((0, colorette_1.red)(`Unable to launch server. Learn more at: ${err}`));
         throw new common_1.InternalServerErrorException();
     }
-}
+};
 bootstrap();
 
 
