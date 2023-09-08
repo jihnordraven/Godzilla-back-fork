@@ -22,7 +22,7 @@ const bootstrap = async (): Promise<void> => {
 		app.enableCors({
 			origin: [
 				"http://localhost:3000",
-				"https://godzilla-front.vercel.app/",
+				"https://godzilla-front.vercel.app",
 				"https://godzillagram.com/"
 			],
 			credentials: true,
