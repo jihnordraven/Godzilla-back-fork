@@ -11,7 +11,7 @@ export class AppController {
 	@Get()
 	@ApiExcludeEndpoint()
 	async getHello() {
-		return await this.appService.getHello()
+		return "Server works"
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)

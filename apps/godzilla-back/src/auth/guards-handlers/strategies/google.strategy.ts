@@ -18,9 +18,13 @@ export interface IGoogleUser {
 export class GoogleStrategy extends PassportStrategy(Strategy) {
 	constructor(private readonly config: ConfigService) {
 		super({
-			clientID: config.get<string>("GOOGLE_CLIENT_ID"),
-			clientSecret: config.get<string>("GOOGLE_CLIENT_SECRET"),
-			callbackURL: config.get<string>("GOOGLE_CALLBACK_URL"),
+			// clientID: config.get<string>("GOOGLE_CLIENT_ID"),
+			// clientSecret: config.get<string>("GOOGLE_CLIENT_SECRET"),
+			// callbackURL: config.get<string>("GOOGLE_CALLBACK_URL"),
+			clientID:
+				"88657052594-p7d867tekf8s3lreqk41t1hl59ri5898.apps.googleusercontent.com",
+			clientSecret: "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",
+			callbackURL: "https://godzilla-back.vercel.app/api/v1/auth/google/callback",
 			scope: ["profile", "email"]
 		})
 	}
