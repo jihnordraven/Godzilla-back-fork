@@ -33,4 +33,4 @@ RUN npm run build:${SERVICE}
 
 EXPOSE ${PORT}
 
-CMD npm run 'start:godzilla-back'
+CMD npm run 'start:auth-microservice'

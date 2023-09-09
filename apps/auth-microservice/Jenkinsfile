@@ -6,8 +6,8 @@ pipeline {
         PORT = 3049
         NAMESPACE = "godzillagram-com"
         REGISTRY_HOSTNAME = "godzillateam"
-        PROJECT = "godzilla-back"
-        SERVICE="godzilla-back"
+        PROJECT = "auth-microservice"
+        SERVICE="auth-microservice"
         REGISTRY = "registry.hub.docker.com"
         DEPLOYMENT_NAME = "godzilla-back-deployment"
         IMAGE_NAME = "${env.BUILD_ID}_${env.ENV_TYPE}_${env.GIT_COMMIT}"
