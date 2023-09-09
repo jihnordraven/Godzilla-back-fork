@@ -1,6 +1,6 @@
 import { applyDecorators, HttpStatus } from "@nestjs/common"
 import { ApiOperation, ApiProperty, ApiResponse } from "@nestjs/swagger"
-import { LoginResType } from "../../../apps/godzilla-back/src/auth/core/models"
+import { LoginResType } from "../../../apps/auth-microservice/src/auth/core/models"
 
 type LoginReqType = {
 	email: string
@@ -50,7 +50,7 @@ export function SwaggerToAuthorization(): MethodDecorator {
 		}),
 		ApiResponse({
 			status: HttpStatus.UNAUTHORIZED,
-			description: "If the password or login is wrong"
+			description: "Invalid user's credentials"
 		})
 	)
 }

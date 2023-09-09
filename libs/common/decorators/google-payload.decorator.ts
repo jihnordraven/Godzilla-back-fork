@@ -1,5 +1,5 @@
 import { ExecutionContext, createParamDecorator } from "@nestjs/common"
-import { IGoogleUser } from "apps/godzilla-back/src/auth/guards-handlers/strategies"
+import { IGoogleUser } from "apps/auth-microservice/src/auth/protection/strategies"
 import { Request } from "express"
 
 export const GooglePayloadDecorator = createParamDecorator(

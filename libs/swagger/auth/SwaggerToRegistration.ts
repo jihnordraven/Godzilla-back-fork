@@ -6,15 +6,11 @@ export function SwaggerToRegistration(): MethodDecorator {
 		ApiOperation({ summary: "User registration" }),
 		ApiResponse({
 			status: HttpStatus.NO_CONTENT,
-			description:
-				"Input data is accepted. Email with confirmation code will be send to " +
-				"passed email address"
+			description: "User created successfully, sent an confirmation code to user's email"
 		}),
 		ApiResponse({
-			status: HttpStatus.BAD_REQUEST,
-			description:
-				"If the inputModel has incorrect values (in particular if the user with " +
-				"the given email or password already exists)"
+			status: HttpStatus.CONFLICT,
+			description: "Email or username is already existing"
 		})
 	)
 }

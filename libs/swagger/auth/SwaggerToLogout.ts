@@ -6,12 +6,11 @@ export function SwaggerToLogout(): MethodDecorator {
 		ApiOperation({ summary: "User is logout" }),
 		ApiResponse({
 			status: HttpStatus.NO_CONTENT,
-			description: "User is logout"
+			description: "User is logout successfully"
 		}),
 		ApiResponse({
 			status: HttpStatus.UNAUTHORIZED,
-			description:
-				"If the JWT refreshToken inside cookie is missing, expired or incorrect"
+			description: "If the JWT refreshToken inside cookie is missing, expired or incorrect"
 		})
 	)
 }

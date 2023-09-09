@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                    String                 @id @default(uuid())
+  username              String                 @unique()
+  email                 String                 @unique()
+  hashPassword          String                 @map("hash_password")
+  isBlocked             Boolean                @default(false) @map("is_blocked")
+  isConfirmed           ConfirmEmailStatusEnum @default(PENDING) @map("is_confirmed")
+  Comments              Comment[]
+  EmailConfirmCodes     EmailConfirmCode[]
+  PasswordRecoveryCodes PasswordRecoveryCode[]
+  LikesInfoComment      LikesInfoComment[]
+  LikesInfoPost         LikesInfoPost[]
+  Posts                 Post[]
+  profile               Profile?
+  Sessions              Sessions[]
+  GoogleProfile         GoogleProfile?
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model GoogleProfile {
+  id          String  @id @unique @default(uuid())
+  providerID  String  @unique @map("provider_id")
+  username    String  @unique
+  email       String  @unique
+  displayName String? @map("display_name")
+  provider    String
+  userID      String  @unique @map("user_id")
+  user        User    @relation(fields: [userID], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("google_profiles")
+}
+
+model EmailConfirmCode {
+  id     String   @id @unique @default(uuid())
+  code   String   @unique
+  exp    DateTime
+  userID String   @map("user_id")
+  user   User     @relation(fields: [userID], references: [id], onDelete: Cascade)
+  isUsed Boolean  @default(false) @map("is_used")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("email_confirm_codes")
+}
+
+model PasswordRecoveryCode {
+  id     String   @id @unique @default(uuid())
+  code   String   @unique
+  exp    DateTime
+  userID String   @map("user_id")
+  user   User     @relation(fields: [userID], references: [id], onDelete: Cascade)
+  isUsed Boolean  @default(false) @map("is_used")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_recovery_codes")
+}
+
+model Profile {
+  userID    String  @id @map("user_owner_id")
+  firstName String? @map("first_name")
+  lastName  String? @map("last_name")
+  birthday  String?
+  city      String?
+  aboutMe   String? @map("about_me")
+  srcPhoto  String?
+  user      User    @relation(fields: [userID], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Post {
+  id            String          @id @default(uuid())
+  text          String?
+  srcContent    String          @map("src_content")
+  isPublished   Boolean         @default(false) @map("is_published")
+  userID        String          @map("user_owner_id")
+  Comment       Comment[]
+  LikesInfoPost LikesInfoPost[]
+  user          User            @relation(fields: [userID], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("posts")
+}
+
+model Comment {
+  id               String             @id @default(uuid())
+  content          String
+  postID           String             @map("post_id")
+  userID           String             @map("user_owner_id")
+  post             Post               @relation(fields: [postID], references: [id], onDelete: Cascade)
+  user             User               @relation(fields: [userID], references: [id], onDelete: Cascade)
+  LikesInfoComment LikesInfoComment[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@map("comments")
+}
+
+model Sessions {
+  id        String @id @default(uuid())
+  userIP    String @map("user_ip")
+  userAgent String @map("user_agent")
+  expires   String
+  userID    String @map("user_owner_id")
+  user      User   @relation(fields: [userID], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sessions")
+}
+
+model LikesInfoPost {
+  id     String @id @default(uuid())
+  status String
+  postID String @map("post_id")
+  userID String @map("user_owner_id")
+  post   Post   @relation(fields: [postID], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userID], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("likes_info_post")
+}
+
+model LikesInfoComment {
+  id        String  @id @default(uuid())
+  status    String
+  commentID String  @map("comment_id")
+  userID    String  @map("user_owner_id")
+  post      Comment @relation(fields: [commentID], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userID], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("likes_info_comment")
+}
+
+// enums
+enum ConfirmEmailStatusEnum {
+  PENDING
+  CONFIRMED
+}
+
+enum CodeStatusEnum {
+  ACTIVE
+  USED
+  BLOCKED
+}

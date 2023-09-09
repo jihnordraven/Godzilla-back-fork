@@ -1,6 +1,6 @@
 import { applyDecorators, HttpStatus } from "@nestjs/common"
 import { ApiOperation, ApiProperty, ApiResponse } from "@nestjs/swagger"
-import { MeInfoType } from "../../../apps/godzilla-back/src/auth/core/models"
+import { MeInfoType } from "../../../apps/auth-microservice/src/auth/core/models"
 
 class MeInfoDto implements MeInfoType {
 	@ApiProperty()
