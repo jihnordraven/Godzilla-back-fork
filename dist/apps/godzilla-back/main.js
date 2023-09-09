@@ -2,31 +2,25 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ "./apps/godzilla-back/src/adapters/activateCode.adapter.ts":
-/*!*****************************************************************!*\
-  !*** ./apps/godzilla-back/src/adapters/activateCode.adapter.ts ***!
-  \*****************************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+/***/ "./apps/godzilla-back/config/config.ts":
+/*!*********************************************!*\
+  !*** ./apps/godzilla-back/config/config.ts ***!
+  \*********************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ActivateCodeAdapter = void 0;
-const uuid_1 = __webpack_require__(/*! uuid */ "uuid");
-const date_fns_1 = __webpack_require__(/*! date-fns */ "date-fns");
-class ActivateCodeAdapter {
-    async createCode() {
-        return {
-            codeActivated: (0, uuid_1.v4)(),
-            lifeTimeCode: await this.createTime()
-        };
-    }
-    async createTime() {
-        return (0, date_fns_1.add)(new Date(), {
-            minutes: 15
-        }).toString();
-    }
-}
-exports.ActivateCodeAdapter = ActivateCodeAdapter;
+exports.CONFIG = void 0;
+const process_1 = __importDefault(__webpack_require__(/*! process */ "process"));
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+exports.CONFIG = {
+    START_MODULE: config_1.ConfigModule.forRoot({ isGlobal: true }),
+    HOST: process_1.default.env.HOST,
+    FRONTEND_HOST: process_1.default.env.FRONTEND_HOST
+};
 
 
 /***/ }),
@@ -77,7 +71,6 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__webpack_require__(/*! ./bcrypt.adapter */ "./apps/godzilla-back/src/adapters/bcrypt.adapter.ts"), exports);
-__exportStar(__webpack_require__(/*! ./activateCode.adapter */ "./apps/godzilla-back/src/adapters/activateCode.adapter.ts"), exports);
 __exportStar(__webpack_require__(/*! ./mailer.adapter */ "./apps/godzilla-back/src/adapters/mailer.adapter.ts"), exports);
 
 
@@ -92,6 +85,7 @@ __exportStar(__webpack_require__(/*! ./mailer.adapter */ "./apps/godzilla-back/s
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MailerAdapter = void 0;
+const config_1 = __webpack_require__(/*! apps/godzilla-back/config/config */ "./apps/godzilla-back/config/config.ts");
 const nodemailer_1 = __webpack_require__(/*! nodemailer */ "nodemailer");
 class MailerAdapter {
     async options(options) {
@@ -109,7 +103,7 @@ class MailerAdapter {
             to: email,
             from: "jihnordraven@gmail.com",
             subject: "Email confirmaiton",
-            html: `<a href='http://localhost:5000/api/v1/auth/registration-confirmaiton?code=${code}'>Confirm email</a>`
+            html: `<a href='${config_1.CONFIG.HOST}/api/v1/auth/registration-confirmation?code=${code}'>Confirm email</a>`
         });
     }
     async sendPasswordCode({ email, code }) {
@@ -117,7 +111,7 @@ class MailerAdapter {
             to: email,
             from: "jihnordraven@gmail.com",
             subject: "Password recovery",
-            html: `<a href='http://localhost:5000/api/v1/auth/password-recovery-confirm?activateCode?${code}'>Password recovery</a>`
+            html: `<a href='${config_1.CONFIG.HOST}/api/v1/auth/password-recovery-confirmation?code=${code}'>Password recovery</a>`
         });
     }
 }
@@ -153,7 +147,7 @@ let AppController = exports.AppController = class AppController {
         this.appService = appService;
     }
     async getHello() {
-        return await this.appService.getHello();
+        return "Server works";
     }
     async testingAllDelete() {
         try {
@@ -210,13 +204,13 @@ const app_service_1 = __webpack_require__(/*! ./app.service */ "./apps/godzilla-
 const auth_module_1 = __webpack_require__(/*! ./auth/auth.module */ "./apps/godzilla-back/src/auth/auth.module.ts");
 const prisma_module_1 = __webpack_require__(/*! ./prisma/prisma.module */ "./apps/godzilla-back/src/prisma/prisma.module.ts");
 const strategies_1 = __webpack_require__(/*! ./auth/guards-handlers/strategies */ "./apps/godzilla-back/src/auth/guards-handlers/strategies/index.ts");
-const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const config_1 = __webpack_require__(/*! ../config/config */ "./apps/godzilla-back/config/config.ts");
 const strategies = [strategies_1.LocalStrategy, strategies_1.JwtAccessStrategy, strategies_1.JwtRefreshStrategy, strategies_1.GoogleStrategy];
 let AppModule = exports.AppModule = class AppModule {
 };
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [config_1.ConfigModule.forRoot({ isGlobal: true }), auth_module_1.AuthModule, prisma_module_1.PrismaModule],
+        imports: [config_1.CONFIG.START_MODULE, auth_module_1.AuthModule, prisma_module_1.PrismaModule],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService, ...strategies]
     })
@@ -368,6 +362,133 @@ exports.AuthService = AuthService = __decorate([
 
 /***/ }),
 
+/***/ "./apps/godzilla-back/src/auth/application/commands/confirm-email.command.ts":
+/*!***********************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/application/commands/confirm-email.command.ts ***!
+  \***********************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ConfirmEmailHandler = exports.ConfirmEmailCommand = void 0;
+const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
+const auth_repository_1 = __webpack_require__(/*! ../../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+class ConfirmEmailCommand {
+    constructor(dto) {
+        this.dto = dto;
+    }
+}
+exports.ConfirmEmailCommand = ConfirmEmailCommand;
+let ConfirmEmailHandler = exports.ConfirmEmailHandler = class ConfirmEmailHandler {
+    constructor(config, authRepository) {
+        this.config = config;
+        this.authRepository = authRepository;
+        this.FRONTEND_HOST = this.config.get("FRONTEND_HOST");
+    }
+    async execute({ dto: { code, res } }) {
+        const isCode = await this.authRepository.findOneEmailCodeByCode({ code });
+        if (!isCode) {
+            res.redirect(`${this.FRONTEND_HOST}/email-code-not-found`);
+            throw new common_1.NotFoundException("Code not found");
+        }
+        if ((isCode.isUsed = true)) {
+            res.redirect(`${this.FRONTEND_HOST}/email-code-already-used`);
+            throw new common_1.BadRequestException("This code has already been used");
+        }
+        const isCodeExpired = new Date(isCode.exp) <= new Date();
+        if (isCodeExpired) {
+            await this.authRepository.deactivateAllEmailCodes({ userID: isCode.userID });
+            res.redirect(`${this.FRONTEND_HOST}/email-code-expired`);
+            throw new common_1.BadRequestException("Code has expired");
+        }
+        await this.authRepository.confirmUserEmail({ userId: isCode.userID });
+        await this.authRepository.deactivateAllEmailCodes({ userID: isCode.userID });
+        res.redirect(`${this.FRONTEND_HOST}/email-code-success`);
+    }
+};
+exports.ConfirmEmailHandler = ConfirmEmailHandler = __decorate([
+    (0, cqrs_1.CommandHandler)(ConfirmEmailCommand),
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _b : Object])
+], ConfirmEmailHandler);
+
+
+/***/ }),
+
+/***/ "./apps/godzilla-back/src/auth/application/commands/confirm-password-recovery.command.ts":
+/*!***********************************************************************************************!*\
+  !*** ./apps/godzilla-back/src/auth/application/commands/confirm-password-recovery.command.ts ***!
+  \***********************************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ConfirmPasswordRecoveryHandler = exports.ConfirmPasswordRecoveryCommand = void 0;
+const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
+const auth_repository_1 = __webpack_require__(/*! ../../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+class ConfirmPasswordRecoveryCommand {
+    constructor(dto) {
+        this.dto = dto;
+    }
+}
+exports.ConfirmPasswordRecoveryCommand = ConfirmPasswordRecoveryCommand;
+let ConfirmPasswordRecoveryHandler = exports.ConfirmPasswordRecoveryHandler = class ConfirmPasswordRecoveryHandler {
+    constructor(config, authRepository) {
+        this.config = config;
+        this.authRepository = authRepository;
+        this.FRONTEND_HOST = this.config.get("FRONTEND_HOST");
+    }
+    async execute({ dto: { code, res } }) {
+        const isCode = await this.authRepository.findOnePasswordRecoveryCodeByCode({ code });
+        if (!isCode) {
+            res.redirect(`${this.FRONTEND_HOST}/password-recovery-code-not-found`);
+            throw new common_1.NotFoundException("Code not found");
+        }
+        if ((isCode.isUsed = true)) {
+            await this.authRepository.deactivateAllPasswordRecoveryCodes({ userID: isCode.userID });
+            res.redirect(`${this.FRONTEND_HOST}/password-recovery-code-already-used`);
+            throw new common_1.ConflictException("This code has already been used");
+        }
+        const isCodeExpired = new Date(isCode.exp) <= new Date();
+        if (isCodeExpired) {
+            await this.authRepository.deactivateAllPasswordRecoveryCodes({ userID: isCode.userID });
+            res.redirect(`${this.FRONTEND_HOST}/password-recovery-code-expired`);
+            throw new common_1.BadRequestException("Code has expired");
+        }
+        res.redirect(`${this.FRONTEND_HOST}/password-recovery-code-success/code=${isCode.code}`);
+    }
+};
+exports.ConfirmPasswordRecoveryHandler = ConfirmPasswordRecoveryHandler = __decorate([
+    (0, cqrs_1.CommandHandler)(ConfirmPasswordRecoveryCommand),
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _b : Object])
+], ConfirmPasswordRecoveryHandler);
+
+
+/***/ }),
+
 /***/ "./apps/godzilla-back/src/auth/application/commands/google-register.command.ts":
 /*!*************************************************************************************!*\
   !*** ./apps/godzilla-back/src/auth/application/commands/google-register.command.ts ***!
@@ -504,6 +625,8 @@ __exportStar(__webpack_require__(/*! ./password-recovery-resend.command */ "./ap
 __exportStar(__webpack_require__(/*! ./logout-command */ "./apps/godzilla-back/src/auth/application/commands/logout-command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./meInfo-command */ "./apps/godzilla-back/src/auth/application/commands/meInfo-command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./google-register.command */ "./apps/godzilla-back/src/auth/application/commands/google-register.command.ts"), exports);
+__exportStar(__webpack_require__(/*! ./confirm-email.command */ "./apps/godzilla-back/src/auth/application/commands/confirm-email.command.ts"), exports);
+__exportStar(__webpack_require__(/*! ./confirm-password-recovery.command */ "./apps/godzilla-back/src/auth/application/commands/confirm-password-recovery.command.ts"), exports);
 
 
 /***/ }),
@@ -560,7 +683,7 @@ let LocalRegisterHandler = exports.LocalRegisterHandler = class LocalRegisterHan
             hashPassword
         });
         const emailCode = await this.authRepository.createEmailCode({
-            userId: user.id
+            userID: user.id
         });
         await this.mailerAdapter.sendConfirmCode({ email, code: emailCode.code });
     }
@@ -777,19 +900,19 @@ let NewPasswordHandler = exports.NewPasswordHandler = class NewPasswordHandler {
         this.bcryptAdapter = bcryptAdapter;
     }
     async execute({ data: { newPassword, recoveryCode } }) {
-        const emailCode = await this.authRepository.findOneCodeByCode({
+        const passwordRecoveryCode = await this.authRepository.findOnePasswordRecoveryCodeByCode({
             code: recoveryCode
         });
-        if (!emailCode)
-            throw new common_1.BadRequestException("Invalid token");
-        const isCodeExpired = new Date(emailCode.exp) < new Date();
-        if (isCodeExpired)
-            throw new common_1.ForbiddenException("Code has expired");
+        if (!passwordRecoveryCode)
+            throw new common_1.BadRequestException("Invalid code");
+        const user = await this.authRepository.findUserToId(passwordRecoveryCode.userID);
+        if (!user)
+            throw new common_1.BadRequestException("User doesn't exist");
         const hashPassword = await this.bcryptAdapter.hash({
             password: newPassword
         });
         await this.authRepository.createNewPassword({
-            userId: emailCode.userId,
+            userId: user.id,
             hashPassword
         });
     }
@@ -818,14 +941,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b, _c;
+var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PasswordRecoveryResendHandler = exports.PasswordRecoveryResendCommand = void 0;
 const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const auth_repository_1 = __webpack_require__(/*! ../../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const mailer_adapter_1 = __webpack_require__(/*! ../../../adapters/mailer.adapter */ "./apps/godzilla-back/src/adapters/mailer.adapter.ts");
-const adapters_1 = __webpack_require__(/*! ../../../adapters */ "./apps/godzilla-back/src/adapters/index.ts");
 class PasswordRecoveryResendCommand {
     constructor(data) {
         this.data = data;
@@ -833,26 +955,22 @@ class PasswordRecoveryResendCommand {
 }
 exports.PasswordRecoveryResendCommand = PasswordRecoveryResendCommand;
 let PasswordRecoveryResendHandler = exports.PasswordRecoveryResendHandler = class PasswordRecoveryResendHandler {
-    constructor(authRepository, mailerAdapter, activateCodeAdapter) {
+    constructor(authRepository, mailerAdapter) {
         this.authRepository = authRepository;
         this.mailerAdapter = mailerAdapter;
-        this.activateCodeAdapter = activateCodeAdapter;
     }
     async execute({ data: { email } }) {
         const user = await this.authRepository.findUserToEmail({ email });
         if (!user)
             throw new common_1.NotFoundException("User not found");
-        await this.authRepository.deactivateAllEmailCodes({ userId: user.id });
-        const passwordCode = await this.activateCodeAdapter.createCode();
-        await this.mailerAdapter.sendPasswordCode({
-            email,
-            code: passwordCode.codeActivated
-        });
+        await this.authRepository.deactivateAllPasswordRecoveryCodes({ userID: user.id });
+        const passwordRecoveryCode = await this.authRepository.createPasswordRecoveryCode({ userID: user.id });
+        await this.mailerAdapter.sendPasswordCode({ email, code: passwordRecoveryCode.code });
     }
 };
 exports.PasswordRecoveryResendHandler = PasswordRecoveryResendHandler = __decorate([
     (0, cqrs_1.CommandHandler)(PasswordRecoveryResendCommand),
-    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof mailer_adapter_1.MailerAdapter !== "undefined" && mailer_adapter_1.MailerAdapter) === "function" ? _b : Object, typeof (_c = typeof adapters_1.ActivateCodeAdapter !== "undefined" && adapters_1.ActivateCodeAdapter) === "function" ? _c : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof mailer_adapter_1.MailerAdapter !== "undefined" && mailer_adapter_1.MailerAdapter) === "function" ? _b : Object])
 ], PasswordRecoveryResendHandler);
 
 
@@ -874,13 +992,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b, _c;
+var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PasswordRecoveryHandler = exports.PasswordRecoveryCommand = void 0;
 const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const auth_repository_1 = __webpack_require__(/*! ../../repository/auth.repository */ "./apps/godzilla-back/src/auth/repository/auth.repository.ts");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const adapters_1 = __webpack_require__(/*! ../../../adapters */ "./apps/godzilla-back/src/adapters/index.ts");
 const mailer_adapter_1 = __webpack_require__(/*! ../../../adapters/mailer.adapter */ "./apps/godzilla-back/src/adapters/mailer.adapter.ts");
 class PasswordRecoveryCommand {
     constructor(data) {
@@ -889,25 +1006,22 @@ class PasswordRecoveryCommand {
 }
 exports.PasswordRecoveryCommand = PasswordRecoveryCommand;
 let PasswordRecoveryHandler = exports.PasswordRecoveryHandler = class PasswordRecoveryHandler {
-    constructor(authRepository, activateCodeAdapter, mailerAdapter) {
+    constructor(authRepository, mailerAdapter) {
         this.authRepository = authRepository;
-        this.activateCodeAdapter = activateCodeAdapter;
         this.mailerAdapter = mailerAdapter;
     }
     async execute({ data: { email } }) {
         const user = await this.authRepository.findUserToEmail({ email });
         if (!user)
             throw new common_1.NotFoundException("User not found");
-        const passwordCode = await this.activateCodeAdapter.createCode();
-        await this.mailerAdapter.sendPasswordCode({
-            email,
-            code: passwordCode.codeActivated
-        });
+        await this.authRepository.deactivateAllPasswordRecoveryCodes({ userID: user.id });
+        const passwordRecoveryCode = await this.authRepository.createPasswordRecoveryCode({ userID: user.id });
+        await this.mailerAdapter.sendPasswordCode({ email, code: passwordRecoveryCode.code });
     }
 };
 exports.PasswordRecoveryHandler = PasswordRecoveryHandler = __decorate([
     (0, cqrs_1.CommandHandler)(PasswordRecoveryCommand),
-    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof adapters_1.ActivateCodeAdapter !== "undefined" && adapters_1.ActivateCodeAdapter) === "function" ? _b : Object, typeof (_c = typeof mailer_adapter_1.MailerAdapter !== "undefined" && mailer_adapter_1.MailerAdapter) === "function" ? _c : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof mailer_adapter_1.MailerAdapter !== "undefined" && mailer_adapter_1.MailerAdapter) === "function" ? _b : Object])
 ], PasswordRecoveryHandler);
 
 
@@ -953,9 +1067,9 @@ let ResendEmailCodeHandler = exports.ResendEmailCodeHandler = class ResendEmailC
         });
         if (!user)
             throw new common_1.NotFoundException("User not found");
-        await this.authRepository.deactivateAllEmailCodes({ userId: user.id });
+        await this.authRepository.deactivateAllEmailCodes({ userID: user.id });
         const emailCode = await this.authRepository.createEmailCode({
-            userId: user.id
+            userID: user.id
         });
         await this.mailerAdapter.sendConfirmCode({
             email: user.email,
@@ -990,7 +1104,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -1008,6 +1122,8 @@ const strategies_1 = __webpack_require__(/*! ./guards-handlers/strategies */ "./
 const decorators_1 = __webpack_require__(/*! ../../../../libs/common/decorators */ "./libs/common/decorators/index.ts");
 const enums_1 = __webpack_require__(/*! ../../../../libs/models/enums */ "./libs/models/enums.ts");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const confirm_email_command_1 = __webpack_require__(/*! ./application/commands/confirm-email.command */ "./apps/godzilla-back/src/auth/application/commands/confirm-email.command.ts");
+const confirm_password_recovery_command_1 = __webpack_require__(/*! ./application/commands/confirm-password-recovery.command */ "./apps/godzilla-back/src/auth/application/commands/confirm-password-recovery.command.ts");
 let AuthController = exports.AuthController = class AuthController {
     constructor(commandBus, authService, config) {
         this.commandBus = commandBus;
@@ -1020,48 +1136,38 @@ let AuthController = exports.AuthController = class AuthController {
     async userRegistrationResending({ email }) {
         await this.commandBus.execute(new commands_1.ResendEmailCodeCommand({ email }));
     }
-    async userRegistrationConfirm(code, res) { }
+    async userRegistrationConfirm(code, res) {
+        await this.commandBus.execute(new confirm_email_command_1.ConfirmEmailCommand({ code, res }));
+    }
     async userCreateNewPass({ email }) {
         await this.commandBus.execute(new commands_1.PasswordRecoveryCommand({ email }));
     }
     async passwordEmailResending({ email }) {
         await this.commandBus.execute(new commands_1.PasswordRecoveryResendCommand({ email }));
     }
-    async newPasswordConfirm(code) {
-        console.log(code);
+    async newPasswordConfirm(code, res) {
+        await this.commandBus.execute(new confirm_password_recovery_command_1.ConfirmPasswordRecoveryCommand({ code, res }));
     }
     async userUpdateNewPass({ newPassword, recoveryCode }) {
         await this.commandBus.execute(new commands_1.NewPasswordCommand({ recoveryCode, newPassword }));
     }
-    async userAuthorization(body, jwtPayload, userIP, userAgent, response) {
+    async userAuthorization(jwtPayload, userIP, userAgent, res) {
         const authObjectDTO = {
             userIP,
             userAgent,
             userID: jwtPayload.userId
         };
-        const tokensObject = await this.commandBus.execute(new commands_1.LoginCommand(authObjectDTO));
-        response.cookie("refreshToken", tokensObject.refreshToken, {
-            httpOnly: true,
-            secure: true
-        });
-        return {
-            accessToken: tokensObject.accessToken
-        };
+        const tokens = await this.commandBus.execute(new commands_1.LoginCommand(authObjectDTO));
+        return this.setTokensToResponse({ tokens, res });
     }
-    async userRefreshToken(jwtPayload, userIP, userAgent, response) {
+    async userRefreshToken(jwtPayload, userIP, userAgent, res) {
         const authObjectDTO = {
             userIP,
             userAgent,
             userID: jwtPayload.userId
         };
-        const tokensObject = await this.authService.refreshFlow(authObjectDTO, jwtPayload.userId, jwtPayload.sessionId);
-        response.cookie("refreshToken", tokensObject.refreshToken, {
-            httpOnly: true,
-            secure: true
-        });
-        return {
-            accessToken: tokensObject.accessToken
-        };
+        const tokens = await this.authService.refreshFlow(authObjectDTO, jwtPayload.userId, jwtPayload.sessionId);
+        return this.setTokensToResponse({ tokens, res });
     }
     async userLogout(jwtPayload, response) {
         await this.commandBus.execute(new commands_1.LogoutCommand(jwtPayload.userId, jwtPayload.sessionId));
@@ -1083,7 +1189,7 @@ let AuthController = exports.AuthController = class AuthController {
             httpOnly: true,
             secure: true
         });
-        res.json({ accessToken: tokens.accessToken });
+        return { accessToken: tokens.accessToken };
     }
     async setTokensToResponseGoogle({ tokens, res }) {
         res.cookie(enums_1.TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
@@ -1120,7 +1226,7 @@ __decorate([
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, typeof (_g = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _g : Object]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
 ], AuthController.prototype, "userRegistrationConfirm", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
@@ -1128,8 +1234,8 @@ __decorate([
     (0, common_1.Post)("password-recovery"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_h = typeof dto_1.PassRecoveryDto !== "undefined" && dto_1.PassRecoveryDto) === "function" ? _h : Object]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:paramtypes", [typeof (_j = typeof dto_1.PassRecoveryDto !== "undefined" && dto_1.PassRecoveryDto) === "function" ? _j : Object]),
+    __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
 ], AuthController.prototype, "userCreateNewPass", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
@@ -1138,16 +1244,17 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
 ], AuthController.prototype, "passwordEmailResending", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiExcludeEndpoint)(),
-    (0, common_1.Get)("new-password-confirmation/:codeActivate"),
-    __param(0, (0, common_1.Param)("codeActivate", new common_1.ParseUUIDPipe())),
+    (0, common_1.Get)("password-recovery-confirmation"),
+    __param(0, (0, common_1.Query)("code")),
+    __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:paramtypes", [String, typeof (_m = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _m : Object]),
+    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
 ], AuthController.prototype, "newPasswordConfirm", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
@@ -1155,22 +1262,21 @@ __decorate([
     (0, common_1.Post)("new-password"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_j = typeof dto_1.NewPassUpdateDto !== "undefined" && dto_1.NewPassUpdateDto) === "function" ? _j : Object]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:paramtypes", [typeof (_p = typeof dto_1.NewPassUpdateDto !== "undefined" && dto_1.NewPassUpdateDto) === "function" ? _p : Object]),
+    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
 ], AuthController.prototype, "userUpdateNewPass", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.UseGuards)(guards_1.LocalAuthGuard),
     (0, auth_1.SwaggerToAuthorization)(),
     (0, common_1.Post)("login"),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, helpers_1.JwtPayloadDecorator)()),
-    __param(2, (0, common_1.Ip)()),
-    __param(3, (0, decorators_1.UserAgentDecorator)()),
-    __param(4, (0, common_1.Res)({ passthrough: true })),
+    __param(0, (0, helpers_1.JwtPayloadDecorator)()),
+    __param(1, (0, common_1.Ip)()),
+    __param(2, (0, decorators_1.UserAgentDecorator)()),
+    __param(3, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_k = typeof auth_1.LoginReqDto !== "undefined" && auth_1.LoginReqDto) === "function" ? _k : Object, typeof (_l = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _l : Object, String, String, typeof (_m = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _m : Object]),
-    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+    __metadata("design:paramtypes", [typeof (_r = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _r : Object, String, String, typeof (_s = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _s : Object]),
+    __metadata("design:returntype", typeof (_t = typeof Promise !== "undefined" && Promise) === "function" ? _t : Object)
 ], AuthController.prototype, "userAuthorization", null);
 __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -1182,7 +1288,7 @@ __decorate([
     __param(2, (0, decorators_1.UserAgentDecorator)()),
     __param(3, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_p = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _p : Object, String, Object, typeof (_q = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _q : Object]),
+    __metadata("design:paramtypes", [typeof (_u = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _u : Object, String, String, typeof (_v = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _v : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userRefreshToken", null);
 __decorate([
@@ -1193,7 +1299,7 @@ __decorate([
     __param(0, (0, helpers_1.JwtPayloadDecorator)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_r = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _r : Object, typeof (_s = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _s : Object]),
+    __metadata("design:paramtypes", [typeof (_w = typeof helpers_1.JwtRefreshPayload !== "undefined" && helpers_1.JwtRefreshPayload) === "function" ? _w : Object, typeof (_x = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _x : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "userLogout", null);
 __decorate([
@@ -1203,8 +1309,8 @@ __decorate([
     (0, common_1.Get)("me"),
     __param(0, (0, helpers_1.JwtPayloadDecorator)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_t = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _t : Object]),
-    __metadata("design:returntype", typeof (_u = typeof Promise !== "undefined" && Promise) === "function" ? _u : Object)
+    __metadata("design:paramtypes", [typeof (_y = typeof helpers_1.JwtAccessPayload !== "undefined" && helpers_1.JwtAccessPayload) === "function" ? _y : Object]),
+    __metadata("design:returntype", typeof (_z = typeof Promise !== "undefined" && Promise) === "function" ? _z : Object)
 ], AuthController.prototype, "meInfo", null);
 __decorate([
     (0, common_1.Get)("google"),
@@ -1221,8 +1327,8 @@ __decorate([
     __param(2, (0, decorators_1.UserAgentDecorator)()),
     __param(3, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_v = typeof strategies_1.IGoogleUser !== "undefined" && strategies_1.IGoogleUser) === "function" ? _v : Object, String, String, typeof (_w = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _w : Object]),
-    __metadata("design:returntype", typeof (_x = typeof Promise !== "undefined" && Promise) === "function" ? _x : Object)
+    __metadata("design:paramtypes", [typeof (_0 = typeof strategies_1.IGoogleUser !== "undefined" && strategies_1.IGoogleUser) === "function" ? _0 : Object, String, String, typeof (_1 = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _1 : Object]),
+    __metadata("design:returntype", typeof (_2 = typeof Promise !== "undefined" && Promise) === "function" ? _2 : Object)
 ], AuthController.prototype, "googleCallback", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)("Auth"),
@@ -1274,9 +1380,11 @@ const commandHandlers = [
     commands_1.NewPasswordHandler,
     commands_1.MeInfoUseCase,
     commands_1.LogoutUseCase,
-    commands_1.GoogleRegisterHandler
+    commands_1.GoogleRegisterHandler,
+    commands_1.ConfirmPasswordRecoveryHandler,
+    commands_1.ConfirmEmailHandler
 ];
-const adapters = [adapters_1.BcryptAdapter, adapters_1.MailerAdapter, adapters_1.ActivateCodeAdapter];
+const adapters = [adapters_1.BcryptAdapter, adapters_1.MailerAdapter];
 const modules = [cqrs_1.CqrsModule, prisma_module_1.PrismaModule, passport_1.PassportModule, jwt_1.JwtModule];
 let AuthModule = exports.AuthModule = class AuthModule {
 };
@@ -1284,13 +1392,7 @@ exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [...modules],
         controllers: [auth_controller_1.AuthController],
-        providers: [
-            auth_service_1.AuthService,
-            auth_repository_1.AuthRepository,
-            ...validators,
-            ...adapters,
-            ...commandHandlers
-        ],
+        providers: [auth_service_1.AuthService, auth_repository_1.AuthRepository, ...validators, ...adapters, ...commandHandlers],
         exports: [auth_service_1.AuthService]
     })
 ], AuthModule);
@@ -1938,7 +2040,7 @@ let GoogleStrategy = exports.GoogleStrategy = class GoogleStrategy extends (0, p
         super({
             clientID: config.get("GOOGLE_CLIENT_ID"),
             clientSecret: config.get("GOOGLE_CLIENT_SECRET"),
-            callbackURL: "http://localhost:5000/api/v1/auth/google/callback",
+            callbackURL: config.get("GOOGLE_CALLBACK_URL"),
             scope: ["profile", "email"]
         });
         this.config = config;
@@ -2168,6 +2270,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthRepository = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const prisma_service_1 = __webpack_require__(/*! ../../prisma/prisma.service */ "./apps/godzilla-back/src/prisma/prisma.service.ts");
+const client_1 = __webpack_require__(/*! @prisma/client */ "@prisma/client");
 const colorette_1 = __webpack_require__(/*! colorette */ "colorette");
 const uuid_1 = __webpack_require__(/*! uuid */ "uuid");
 const date_fns_1 = __webpack_require__(/*! date-fns */ "date-fns");
@@ -2175,10 +2278,8 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
     constructor(prisma) {
         this.prisma = prisma;
         this.logger = new common_1.Logger(AuthRepository_1.name);
-        this.clientsCounter = 0;
     }
     async localRegister(data) {
-        console.log(data);
         const user = await this.prisma.user
             .create({
             data: {
@@ -2192,13 +2293,13 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
             throw new common_1.InternalServerErrorException("Unable to create user");
         return user;
     }
-    async createEmailCode({ userId }) {
+    async createEmailCode({ userID }) {
         const emailCode = await this.prisma.emailConfirmCode
             .create({
             data: {
                 code: (0, uuid_1.v4)(),
                 exp: (0, date_fns_1.add)(new Date(), { minutes: 10 }),
-                userId
+                userID
             }
         })
             .catch((err) => this.logger.error((0, colorette_1.red)(err)));
@@ -2206,15 +2307,15 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
             throw new common_1.InternalServerErrorException("Unable to create email code");
         return emailCode;
     }
-    async findOneCodeByCode({ code }) {
+    async findOneEmailCodeByCode({ code }) {
         return this.prisma.emailConfirmCode.findUnique({ where: { code } });
     }
     async findUniqueUserById({ userId }) {
         return this.prisma.user.findUnique({ where: { id: userId } });
     }
-    async deactivateAllEmailCodes({ userId }) {
+    async deactivateAllEmailCodes({ userID }) {
         await this.prisma.emailConfirmCode.updateMany({
-            where: { userId },
+            where: { userID },
             data: { isUsed: true }
         });
     }
@@ -2292,16 +2393,35 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
         });
     }
     async confirmUserEmail({ userId }) {
-        await this.prisma.user.update({
+        return Boolean(this.prisma.user.update({
             where: { id: userId },
-            data: { isConfirmed: true }
-        });
+            data: { isConfirmed: client_1.ConfirmEmailStatusEnum.CONFIRMED }
+        }));
     }
     async findOneGoogleProfileByUserID({ userID }) {
         return this.prisma.googleProfile.findUnique({ where: { userId: userID } });
     }
     async findUniqueGoogleProfileByProviderId({ providerId }) {
         return this.prisma.googleProfile.findUnique({ where: { providerId } });
+    }
+    async createPasswordRecoveryCode({ userID }) {
+        return this.prisma.passwordRecoveryCode.create({
+            data: {
+                code: (0, uuid_1.v4)(),
+                exp: (0, date_fns_1.add)(new Date(), { minutes: 10 }),
+                userID
+            }
+        });
+    }
+    async deactivateAllPasswordRecoveryCodes({ userID }) {
+        await this.prisma.passwordRecoveryCode.updateMany({
+            where: { userID },
+            data: { isUsed: true }
+        });
+    }
+    async findOnePasswordRecoveryCodeByCode({ code }) {
+        console.log(code);
+        return this.prisma.passwordRecoveryCode.findUnique({ where: { code } });
     }
 };
 exports.AuthRepository = AuthRepository = AuthRepository_1 = __decorate([
@@ -2339,8 +2459,8 @@ const bootstrap = async () => {
         app.enableCors({
             origin: [
                 "http://localhost:3000",
-                "https://godzilla-front.vercel.app/",
-                "https://godzillagram.com/"
+                "https://godzilla-front.vercel.app",
+                "https://godzillagram.com"
             ],
             credentials: true,
             methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"]
@@ -2576,6 +2696,28 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__webpack_require__(/*! ./trimDecorator */ "./libs/helpers/trimDecorator.ts"), exports);
 __exportStar(__webpack_require__(/*! ./payloadDecorator */ "./libs/helpers/payloadDecorator.ts"), exports);
 __exportStar(__webpack_require__(/*! ./refreshCookieExtractor */ "./libs/helpers/refreshCookieExtractor.ts"), exports);
+__exportStar(__webpack_require__(/*! ./jwt-password-recovery.extractor */ "./libs/helpers/jwt-password-recovery.extractor.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./libs/helpers/jwt-password-recovery.extractor.ts":
+/*!*********************************************************!*\
+  !*** ./libs/helpers/jwt-password-recovery.extractor.ts ***!
+  \*********************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtPasswordRecoveryExtractor = void 0;
+const JwtPasswordRecoveryExtractor = (req) => {
+    let code = null;
+    if (req && req.params) {
+        code = req.params["code"];
+    }
+    return code;
+};
+exports.JwtPasswordRecoveryExtractor = JwtPasswordRecoveryExtractor;
 
 
 /***/ }),
@@ -3306,6 +3448,16 @@ module.exports = require("passport-local");
 /***/ ((module) => {
 
 module.exports = require("uuid");
+
+/***/ }),
+
+/***/ "process":
+/*!**************************!*\
+  !*** external "process" ***!
+  \**************************/
+/***/ ((module) => {
+
+module.exports = require("process");
 
 /***/ })
 

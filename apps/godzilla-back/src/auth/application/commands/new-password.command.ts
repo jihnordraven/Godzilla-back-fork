@@ -1,8 +1,8 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
 import { NewPassUpdateDto } from "../../core/dto"
 import { AuthRepository } from "../../repository/auth.repository"
-import { EmailConfirmCode } from "@prisma/client"
-import { BadRequestException, ForbiddenException } from "@nestjs/common"
+import { PasswordRecoveryCode, User } from "@prisma/client"
+import { BadRequestException } from "@nestjs/common"
 import { BcryptAdapter } from "../../../adapters"
 
 export class NewPasswordCommand {
@@ -16,24 +16,24 @@ export class NewPasswordHandler implements ICommandHandler<NewPasswordCommand> {
 		protected readonly bcryptAdapter: BcryptAdapter
 	) {}
 
-	async execute({
-		data: { newPassword, recoveryCode }
-	}: NewPasswordCommand): Promise<void> {
-		const emailCode: EmailConfirmCode | null =
-			await this.authRepository.findOneCodeByCode({
+	async execute({ data: { newPassword, recoveryCode } }: NewPasswordCommand): Promise<void> {
+		const passwordRecoveryCode: PasswordRecoveryCode | null =
+			await this.authRepository.findOnePasswordRecoveryCodeByCode({
 				code: recoveryCode
 			})
-		if (!emailCode) throw new BadRequestException("Invalid token")
+		if (!passwordRecoveryCode) throw new BadRequestException("Invalid code")
 
-		const isCodeExpired: boolean = new Date(emailCode.exp) < new Date()
-		if (isCodeExpired) throw new ForbiddenException("Code has expired")
+		const user: User | null = await this.authRepository.findUserToId(
+			passwordRecoveryCode.userID
+		)
+		if (!user) throw new BadRequestException("User doesn't exist")
 
 		const hashPassword: string = await this.bcryptAdapter.hash({
 			password: newPassword
 		})
 
 		await this.authRepository.createNewPassword({
-			userId: emailCode.userId,
+			userId: user.id,
 			hashPassword
 		})
 	}

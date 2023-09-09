@@ -22,14 +22,12 @@ export class LocalRegisterHandler implements ICommandHandler<LocalRegisterComman
 		createUser: { email, username, password }
 	}: LocalRegisterCommand): Promise<void> {
 		const isEmail: boolean = await this.authRepository.checkUniqueEmail({ email })
-		if (isEmail)
-			throw new ConflictException("User with this email is already registered")
+		if (isEmail) throw new ConflictException("User with this email is already registered")
 
 		const isUsername: boolean = await this.authRepository.checkUniqueUsername({
 			username
 		})
-		if (isUsername)
-			throw new ConflictException("User with this username is already registered")
+		if (isUsername) throw new ConflictException("User with this username is already registered")
 
 		const hashPassword: string = await this.bcryptAdapter.hash({ password })
 
@@ -40,7 +38,7 @@ export class LocalRegisterHandler implements ICommandHandler<LocalRegisterComman
 		})
 
 		const emailCode: EmailConfirmCode = await this.authRepository.createEmailCode({
-			userId: user.id
+			userID: user.id
 		})
 
 		await this.mailerAdapter.sendConfirmCode({ email, code: emailCode.code })

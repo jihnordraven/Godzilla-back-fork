@@ -1,3 +1,4 @@
+import { CONFIG } from "apps/godzilla-back/config/config"
 import { SendMailOptions, Transporter, createTransport } from "nodemailer"
 
 type SendMailType = {
@@ -22,22 +23,16 @@ export class MailerAdapter {
 			to: email,
 			from: "jihnordraven@gmail.com",
 			subject: "Email confirmaiton",
-			html: `<a href='http://localhost:5000/api/v1/auth/registration-confirmaiton?code=${code}'>Confirm email</a>`
+			html: `<a href='${CONFIG.HOST}/api/v1/auth/registration-confirmation?code=${code}'>Confirm email</a>`
 		})
 	}
 
-	public async sendPasswordCode({
-		email,
-		code
-	}: {
-		email: string
-		code: string
-	}): Promise<void> {
+	public async sendPasswordCode({ email, code }: { email: string; code: string }): Promise<void> {
 		return this.options({
 			to: email,
 			from: "jihnordraven@gmail.com",
 			subject: "Password recovery",
-			html: `<a href='http://localhost:5000/api/v1/auth/password-recovery-confirm?activateCode?${code}'>Password recovery</a>`
+			html: `<a href='${CONFIG.HOST}/api/v1/auth/password-recovery-confirmation?code=${code}'>Password recovery</a>`
 		})
 	}
 }

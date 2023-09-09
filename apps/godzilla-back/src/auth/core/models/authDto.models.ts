@@ -28,5 +28,5 @@ export type LocalRegisterType = {
 }
 
 export type CreateEmailCodeType = {
-	readonly userId: string
+	readonly userID: string
 }

@@ -9,21 +9,22 @@ datasource db {
 }
 
 model User {
-  id               String             @id @default(uuid())
-  username         String             @unique(map: "User.login_unique")
-  email            String             @unique(map: "User.email_unique")
-  hashPassword     String             @map("hash_password")
-  isConfirmed      Boolean            @default(false) @map("is_confirmed")
-  isBlocked        Boolean            @default(false) @map("is_blocked")
-  isDeleted        Boolean            @default(false) @map("is_deleted")
-  Comment          Comment[]
-  EmailConfirmCode EmailConfirmCode[]
-  LikesInfoComment LikesInfoComment[]
-  LikesInfoPost    LikesInfoPost[]
-  Post             Post[]
-  profile          Profile?
-  Sessions         Sessions[]
-  GoogleProfile    GoogleProfile?
+  id                   String                 @id @default(uuid())
+  username             String                 @unique(map: "User.login_unique")
+  email                String                 @unique(map: "User.email_unique")
+  hashPassword         String                 @map("hash_password")
+  isBlocked            Boolean                @default(false) @map("is_blocked")
+  isDeleted            Boolean                @default(false) @map("is_deleted")
+  isConfirmed          ConfirmEmailStatusEnum @default(PENDING) @map("is_confirmed")
+  Comment              Comment[]
+  EmailConfirmCode     EmailConfirmCode[]
+  PasswordRecoveryCode PasswordRecoveryCode[]
+  LikesInfoComment     LikesInfoComment[]
+  LikesInfoPost        LikesInfoPost[]
+  Post                 Post[]
+  profile              Profile?
+  Sessions             Sessions[]
+  GoogleProfile        GoogleProfile?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -51,13 +52,26 @@ model EmailConfirmCode {
   id     String   @id @unique @default(uuid())
   code   String   @unique
   exp    DateTime
-  userId String   @map("user_id")
-  users  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userID String   @map("user_id")
+  user   User     @relation(fields: [userID], references: [id], onDelete: Cascade)
   isUsed Boolean  @default(false) @map("is_used")
 
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("email_confirm_codes")
+}
+
+model PasswordRecoveryCode {
+  id     String   @id @unique @default(uuid())
+  code   String   @unique
+  exp    DateTime
+  userID String   @map("user_id")
+  user   User     @relation(fields: [userID], references: [id], onDelete: Cascade)
+  isUsed Boolean  @default(false) @map("is_used")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_recovery_codes")
 }
 
 model Profile {
@@ -141,4 +155,16 @@ model LikesInfoComment {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("likes_info_comment")
+}
+
+// enums
+enum ConfirmEmailStatusEnum {
+  PENDING
+  CONFIRMED
+}
+
+enum CodeStatusEnum {
+  ACTIVE
+  USED
+  BLOCKED
 }

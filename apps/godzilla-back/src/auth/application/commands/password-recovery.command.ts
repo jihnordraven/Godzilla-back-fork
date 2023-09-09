@@ -1,8 +1,7 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
-import { User } from "@prisma/client"
+import { PasswordRecoveryCode, User } from "@prisma/client"
 import { AuthRepository } from "../../repository/auth.repository"
 import { NotFoundException } from "@nestjs/common"
-import { ActivateCodeAdapter, ActivateCodeType } from "../../../adapters"
 import { MailerAdapter } from "../../../adapters/mailer.adapter"
 
 export class PasswordRecoveryCommand {
@@ -13,7 +12,6 @@ export class PasswordRecoveryCommand {
 export class PasswordRecoveryHandler implements ICommandHandler<PasswordRecoveryCommand> {
 	constructor(
 		protected readonly authRepository: AuthRepository,
-		protected readonly activateCodeAdapter: ActivateCodeAdapter,
 		protected readonly mailerAdapter: MailerAdapter
 	) {}
 
@@ -22,11 +20,11 @@ export class PasswordRecoveryHandler implements ICommandHandler<PasswordRecovery
 
 		if (!user) throw new NotFoundException("User not found")
 
-		const passwordCode: ActivateCodeType = await this.activateCodeAdapter.createCode()
+		await this.authRepository.deactivateAllPasswordRecoveryCodes({ userID: user.id })
 
-		await this.mailerAdapter.sendPasswordCode({
-			email,
-			code: passwordCode.codeActivated
-		})
+		const passwordRecoveryCode: PasswordRecoveryCode =
+			await this.authRepository.createPasswordRecoveryCode({ userID: user.id })
+
+		await this.mailerAdapter.sendPasswordCode({ email, code: passwordRecoveryCode.code })
 	}
 }

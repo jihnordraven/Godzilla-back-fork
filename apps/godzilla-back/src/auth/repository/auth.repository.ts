@@ -6,7 +6,14 @@ import {
 	GoogleRegisterType,
 	LocalRegisterType
 } from "../core/models"
-import { EmailConfirmCode, GoogleProfile, Sessions, User } from "@prisma/client"
+import {
+	ConfirmEmailStatusEnum,
+	EmailConfirmCode,
+	GoogleProfile,
+	PasswordRecoveryCode,
+	Sessions,
+	User
+} from "@prisma/client"
 import { red } from "colorette"
 import { v4 } from "uuid"
 import { add } from "date-fns"
@@ -14,12 +21,10 @@ import { add } from "date-fns"
 @Injectable()
 export class AuthRepository {
 	private readonly logger: Logger = new Logger(AuthRepository.name)
-	private readonly clientsCounter = 0
 
 	constructor(protected prisma: PrismaService) {}
 
 	async localRegister(data: LocalRegisterType): Promise<User> {
-		console.log(data)
 		const user: User | void = await this.prisma.user
 			.create({
 				data: {
@@ -33,26 +38,21 @@ export class AuthRepository {
 		return user
 	}
 
-	async createEmailCode({ userId }: CreateEmailCodeType): Promise<EmailConfirmCode> {
+	async createEmailCode({ userID }: CreateEmailCodeType): Promise<EmailConfirmCode> {
 		const emailCode: EmailConfirmCode | void = await this.prisma.emailConfirmCode
 			.create({
 				data: {
 					code: v4(),
 					exp: add(new Date(), { minutes: 10 }),
-					userId
+					userID
 				}
 			})
 			.catch((err: string) => this.logger.error(red(err)))
-		if (!emailCode)
-			throw new InternalServerErrorException("Unable to create email code")
+		if (!emailCode) throw new InternalServerErrorException("Unable to create email code")
 		return emailCode
 	}
 
-	async findOneCodeByCode({
-		code
-	}: {
-		code: string
-	}): Promise<EmailConfirmCode | null> {
+	async findOneEmailCodeByCode({ code }: { code: string }): Promise<EmailConfirmCode | null> {
 		return this.prisma.emailConfirmCode.findUnique({ where: { code } })
 	}
 
@@ -60,9 +60,9 @@ export class AuthRepository {
 		return this.prisma.user.findUnique({ where: { id: userId } })
 	}
 
-	async deactivateAllEmailCodes({ userId }: { userId: string }): Promise<void> {
+	async deactivateAllEmailCodes({ userID }: { userID: string }): Promise<void> {
 		await this.prisma.emailConfirmCode.updateMany({
-			where: { userId },
+			where: { userID },
 			data: { isUsed: true }
 		})
 	}
@@ -88,10 +88,7 @@ export class AuthRepository {
 		)
 	}
 
-	async addNewSession(
-		authObject: AuthObjectType,
-		expiresTime: string
-	): Promise<Sessions> {
+	async addNewSession(authObject: AuthObjectType, expiresTime: string): Promise<Sessions> {
 		const _session: Sessions = await this.prisma.sessions.findFirst({
 			where: {
 				userIP: authObject.userIP,
@@ -141,11 +138,7 @@ export class AuthRepository {
 		}
 	}
 
-	public async checkUniqueUsername({
-		username = ""
-	}: {
-		username: string
-	}): Promise<boolean> {
+	public async checkUniqueUsername({ username = "" }: { username: string }): Promise<boolean> {
 		return Boolean(await this.prisma.user.findUnique({ where: { username } }))
 	}
 
@@ -166,11 +159,13 @@ export class AuthRepository {
 		})
 	}
 
-	public async confirmUserEmail({ userId }: { userId: string }): Promise<void> {
-		await this.prisma.user.update({
-			where: { id: userId },
-			data: { isConfirmed: true }
-		})
+	public async confirmUserEmail({ userId }: { userId: string }): Promise<boolean> {
+		return Boolean(
+			this.prisma.user.update({
+				where: { id: userId },
+				data: { isConfirmed: ConfirmEmailStatusEnum.CONFIRMED }
+			})
+		)
 	}
 
 	public async findOneGoogleProfileByUserID({
@@ -181,11 +176,37 @@ export class AuthRepository {
 		return this.prisma.googleProfile.findUnique({ where: { userId: userID } })
 	}
 
-	public async findUniqueGoogleProfileByProviderId({
-		providerId
-	}: {
-		providerId: string
-	}) {
+	public async findUniqueGoogleProfileByProviderId({ providerId }: { providerId: string }) {
 		return this.prisma.googleProfile.findUnique({ where: { providerId } })
+	}
+
+	public async createPasswordRecoveryCode({
+		userID
+	}: {
+		userID: string
+	}): Promise<PasswordRecoveryCode> {
+		return this.prisma.passwordRecoveryCode.create({
+			data: {
+				code: v4(),
+				exp: add(new Date(), { minutes: 10 }),
+				userID
+			}
+		})
+	}
+
+	public async deactivateAllPasswordRecoveryCodes({ userID }: { userID: string }): Promise<void> {
+		await this.prisma.passwordRecoveryCode.updateMany({
+			where: { userID },
+			data: { isUsed: true }
+		})
+	}
+
+	public async findOnePasswordRecoveryCodeByCode({
+		code
+	}: {
+		code: string
+	}): Promise<PasswordRecoveryCode | null> {
+		console.log(code)
+		return this.prisma.passwordRecoveryCode.findUnique({ where: { code } })
 	}
 }

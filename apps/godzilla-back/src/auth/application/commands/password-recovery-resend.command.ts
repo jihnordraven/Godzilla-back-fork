@@ -1,9 +1,8 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
 import { AuthRepository } from "../../repository/auth.repository"
-import { User } from "@prisma/client"
+import { PasswordRecoveryCode, User } from "@prisma/client"
 import { NotFoundException } from "@nestjs/common"
 import { MailerAdapter } from "../../../adapters/mailer.adapter"
-import { ActivateCodeAdapter, ActivateCodeType } from "../../../adapters"
 
 export class PasswordRecoveryResendCommand {
 	constructor(public readonly data: { email: string }) {}
@@ -15,8 +14,7 @@ export class PasswordRecoveryResendHandler
 {
 	constructor(
 		protected readonly authRepository: AuthRepository,
-		protected readonly mailerAdapter: MailerAdapter,
-		protected readonly activateCodeAdapter: ActivateCodeAdapter
+		protected readonly mailerAdapter: MailerAdapter
 	) {}
 
 	async execute({ data: { email } }: PasswordRecoveryResendCommand): Promise<void> {
@@ -24,13 +22,11 @@ export class PasswordRecoveryResendHandler
 
 		if (!user) throw new NotFoundException("User not found")
 
-		await this.authRepository.deactivateAllEmailCodes({ userId: user.id })
+		await this.authRepository.deactivateAllPasswordRecoveryCodes({ userID: user.id })
 
-		const passwordCode: ActivateCodeType = await this.activateCodeAdapter.createCode()
+		const passwordRecoveryCode: PasswordRecoveryCode =
+			await this.authRepository.createPasswordRecoveryCode({ userID: user.id })
 
-		await this.mailerAdapter.sendPasswordCode({
-			email,
-			code: passwordCode.codeActivated
-		})
+		await this.mailerAdapter.sendPasswordCode({ email, code: passwordRecoveryCode.code })
 	}
 }

@@ -9,12 +9,13 @@ import {
 	JwtRefreshStrategy,
 	LocalStrategy
 } from "./auth/guards-handlers/strategies"
-import { ConfigModule } from "@nestjs/config"
+import { ConfigModule, ConfigService } from "@nestjs/config"
+import { CONFIG } from "../config/config"
 
 const strategies = [LocalStrategy, JwtAccessStrategy, JwtRefreshStrategy, GoogleStrategy]
 
 @Module({
-	imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, PrismaModule],
+	imports: [CONFIG.START_MODULE, AuthModule, PrismaModule],
 	controllers: [AppController],
 	providers: [AppService, ...strategies]
 })

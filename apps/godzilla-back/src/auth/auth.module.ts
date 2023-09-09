@@ -11,7 +11,7 @@ import { AuthService } from "./application/auth.service"
 import { AuthRepository } from "./repository/auth.repository"
 import { PrismaModule } from "../prisma/prisma.module"
 import { PassportModule } from "@nestjs/passport"
-import { ActivateCodeAdapter, BcryptAdapter, MailerAdapter } from "../adapters"
+import { BcryptAdapter, MailerAdapter } from "../adapters"
 import {
 	LoginUseCase,
 	LocalRegisterHandler,
@@ -21,7 +21,9 @@ import {
 	PasswordRecoveryResendHandler,
 	LogoutUseCase,
 	MeInfoUseCase,
-	GoogleRegisterHandler
+	GoogleRegisterHandler,
+	ConfirmEmailHandler,
+	ConfirmPasswordRecoveryHandler
 } from "./application/commands"
 import { JwtModule } from "@nestjs/jwt"
 
@@ -41,23 +43,19 @@ const commandHandlers = [
 	NewPasswordHandler,
 	MeInfoUseCase,
 	LogoutUseCase,
-	GoogleRegisterHandler
+	GoogleRegisterHandler,
+	ConfirmPasswordRecoveryHandler,
+	ConfirmEmailHandler
 ]
 
-const adapters = [BcryptAdapter, MailerAdapter, ActivateCodeAdapter]
+const adapters = [BcryptAdapter, MailerAdapter]
 
 const modules = [CqrsModule, PrismaModule, PassportModule, JwtModule]
 
 @Module({
 	imports: [...modules],
 	controllers: [AuthController],
-	providers: [
-		AuthService,
-		AuthRepository,
-		...validators,
-		...adapters,
-		...commandHandlers
-	],
+	providers: [AuthService, AuthRepository, ...validators, ...adapters, ...commandHandlers],
 	exports: [AuthService]
 })
 export class AuthModule {}

@@ -18,7 +18,6 @@ import { Response } from "express"
 import { CreateUserDto, NewPassUpdateDto, PassRecoveryDto } from "./core/dto"
 import { JwtAccessGuard, JwtRefreshGuard, LocalAuthGuard } from "./guards-handlers/guards"
 import {
-	LoginReqDto,
 	SwaggerToAuthorization,
 	SwaggerToLogout,
 	SwaggerToMeInfo,
@@ -29,11 +28,7 @@ import {
 	SwaggerToRegistration,
 	SwaggerToRegistrationEmailResending
 } from "../../../../libs/swagger/auth"
-import {
-	JwtAccessPayload,
-	JwtPayloadDecorator,
-	JwtRefreshPayload
-} from "../../../../libs/helpers"
+import { JwtAccessPayload, JwtPayloadDecorator, JwtRefreshPayload } from "../../../../libs/helpers"
 import { AuthObjectType, LoginResType, MeInfoType, TokensObjectType } from "./core/models"
 import {
 	LoginCommand,
@@ -48,12 +43,11 @@ import {
 import { AuthService } from "./application/auth.service"
 import { GoogleGuard } from "./guards-handlers/guards/google.guard"
 import { IGoogleUser } from "./guards-handlers/strategies"
-import {
-	GooglePayloadDecorator,
-	UserAgentDecorator
-} from "../../../../libs/common/decorators"
+import { GooglePayloadDecorator, UserAgentDecorator } from "../../../../libs/common/decorators"
 import { TokensEnum } from "../../../../libs/models/enums"
 import { ConfigService } from "@nestjs/config"
+import { ConfirmEmailCommand } from "./application/commands/confirm-email.command"
+import { ConfirmPasswordRecoveryCommand } from "./application/commands/confirm-password-recovery.command"
 
 type SetTokensToResponseType = {
 	readonly tokens: TokensObjectType
@@ -89,39 +83,38 @@ export class AuthController {
 	async userRegistrationConfirm(
 		@Query("code", new ParseUUIDPipe()) code: string,
 		@Res() res: Response
-	) {}
+	): Promise<void> {
+		await this.commandBus.execute(new ConfirmEmailCommand({ code, res }))
+	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToPasswordRecovery()
 	@Post("password-recovery")
-	async userCreateNewPass(@Body() { email }: PassRecoveryDto) {
+	async userCreateNewPass(@Body() { email }: PassRecoveryDto): Promise<void> {
 		await this.commandBus.execute(new PasswordRecoveryCommand({ email }))
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToPasswordEmailResending()
 	@Post("password-email-resending")
-	async passwordEmailResending(@Body() { email }: { email: string }) {
+	async passwordEmailResending(@Body() { email }: { email: string }): Promise<void> {
 		await this.commandBus.execute(new PasswordRecoveryResendCommand({ email }))
 	}
 
 	@HttpCode(HttpStatus.OK)
 	@ApiExcludeEndpoint()
-	@Get("new-password-confirmation/:codeActivate") //Срабатывает автоматически,
-	// проверяет код активации, если он валиден перенаправляет на страницу new-password,
-	// если не валиден отдается userId и пользователь перенаправляется
-	// на страницу password-email-resending
-	async newPasswordConfirm(@Param("codeActivate", new ParseUUIDPipe()) code: string) {
-		console.log(code)
+	@Get("password-recovery-confirmation")
+	async newPasswordConfirm(@Query("code") code: string, @Res() res: Response): Promise<void> {
+		await this.commandBus.execute(new ConfirmPasswordRecoveryCommand({ code, res }))
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToNewPassword()
 	@Post("new-password")
-	async userUpdateNewPass(@Body() { newPassword, recoveryCode }: NewPassUpdateDto) {
-		await this.commandBus.execute(
-			new NewPasswordCommand({ recoveryCode, newPassword })
-		)
+	async userUpdateNewPass(
+		@Body() { newPassword, recoveryCode }: NewPassUpdateDto
+	): Promise<void> {
+		await this.commandBus.execute(new NewPasswordCommand({ recoveryCode, newPassword }))
 	}
 
 	@HttpCode(HttpStatus.OK)
@@ -129,31 +122,22 @@ export class AuthController {
 	@SwaggerToAuthorization()
 	@Post("login")
 	async userAuthorization(
-		@Body() body: LoginReqDto,
 		@JwtPayloadDecorator()
 		jwtPayload: JwtAccessPayload,
 		@Ip() userIP: string,
 		@UserAgentDecorator() userAgent: string,
-		@Res({ passthrough: true }) response: Response
+		@Res({ passthrough: true }) res: Response
 	): Promise<LoginResType> {
 		const authObjectDTO: AuthObjectType = {
 			userIP,
 			userAgent,
 			userID: jwtPayload.userId
 		}
-
-		const tokensObject: TokensObjectType = await this.commandBus.execute(
+		const tokens: TokensObjectType = await this.commandBus.execute(
 			new LoginCommand(authObjectDTO)
 		)
 
-		response.cookie("refreshToken", tokensObject.refreshToken, {
-			httpOnly: true,
-			secure: true
-		})
-
-		return {
-			accessToken: tokensObject.accessToken
-		}
+		return this.setTokensToResponse({ tokens, res })
 	}
 
 	@HttpCode(HttpStatus.OK)
@@ -163,29 +147,20 @@ export class AuthController {
 	async userRefreshToken(
 		@JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
 		@Ip() userIP: string,
-		@UserAgentDecorator() userAgent,
-		@Res({ passthrough: true }) response: Response
+		@UserAgentDecorator() userAgent: string,
+		@Res({ passthrough: true }) res: Response
 	) {
 		const authObjectDTO: AuthObjectType = {
 			userIP,
 			userAgent,
 			userID: jwtPayload.userId
 		}
-
-		const tokensObject: TokensObjectType = await this.authService.refreshFlow(
+		const tokens: TokensObjectType = await this.authService.refreshFlow(
 			authObjectDTO,
 			jwtPayload.userId,
 			jwtPayload.sessionId
 		)
-
-		response.cookie("refreshToken", tokensObject.refreshToken, {
-			httpOnly: true,
-			secure: true
-		})
-
-		return {
-			accessToken: tokensObject.accessToken
-		}
+		return this.setTokensToResponse({ tokens, res })
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
@@ -196,9 +171,7 @@ export class AuthController {
 		@JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
 		@Res({ passthrough: true }) response: Response
 	) {
-		await this.commandBus.execute(
-			new LogoutCommand(jwtPayload.userId, jwtPayload.sessionId)
-		)
+		await this.commandBus.execute(new LogoutCommand(jwtPayload.userId, jwtPayload.sessionId))
 
 		response.clearCookie("refreshToken")
 	}
@@ -207,9 +180,7 @@ export class AuthController {
 	@UseGuards(JwtAccessGuard)
 	@SwaggerToMeInfo()
 	@Get("me")
-	async meInfo(
-		@JwtPayloadDecorator() jwtPayload: JwtAccessPayload
-	): Promise<MeInfoType> {
+	async meInfo(@JwtPayloadDecorator() jwtPayload: JwtAccessPayload): Promise<MeInfoType> {
 		return await this.commandBus.execute(new MeInfoCommand(jwtPayload.userId))
 	}
 
@@ -235,12 +206,12 @@ export class AuthController {
 	private async setTokensToResponse({
 		tokens,
 		res
-	}: SetTokensToResponseType): Promise<void> {
+	}: SetTokensToResponseType): Promise<LoginResType> {
 		res.cookie(TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
 			httpOnly: true,
 			secure: true
 		})
-		res.json({ accessToken: tokens.accessToken })
+		return { accessToken: tokens.accessToken }
 	}
 
 	private async setTokensToResponseGoogle({

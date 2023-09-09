@@ -22,10 +22,10 @@ export class ResendEmailCodeHandler implements ICommandHandler<ResendEmailCodeCo
 
 		if (!user) throw new NotFoundException("User not found")
 
-		await this.authRepository.deactivateAllEmailCodes({ userId: user.id })
+		await this.authRepository.deactivateAllEmailCodes({ userID: user.id })
 
 		const emailCode: EmailConfirmCode = await this.authRepository.createEmailCode({
-			userId: user.id
+			userID: user.id
 		})
 
 		await this.mailerAdapter.sendConfirmCode({
