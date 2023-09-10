@@ -5,6 +5,7 @@ import { Response } from "express"
 import { ConfigService } from "@nestjs/config"
 import { BadRequestException, NotFoundException } from "@nestjs/common"
 import { AuthQueryRepository } from "../../repositories"
+import { CONFIG } from "apps/auth-microservice/src/config"
 
 export class ConfirmEmailCommand {
 	constructor(public readonly dto: { code: string; res: Response }) {}
@@ -18,7 +19,7 @@ export class ConfirmEmailHandler implements ICommandHandler<ConfirmEmailCommand>
 		private readonly authQueryRepository: AuthQueryRepository
 	) {}
 
-	private readonly FRONTEND_HOST: string = this.config.get<string>("FRONTEND_HOST")
+	private readonly FRONTEND_HOST: string = CONFIG.FRONTEND_HOST
 
 	async execute({ dto: { code, res } }: ConfirmEmailCommand): Promise<void> {
 		const emailConfirmCode: EmailConfirmCode | null =
@@ -28,7 +29,7 @@ export class ConfirmEmailHandler implements ICommandHandler<ConfirmEmailCommand>
 			throw new NotFoundException("Code not found")
 		}
 
-		if (emailConfirmCode.isUsed == true) {
+		if (emailConfirmCode.isUsed === true) {
 			res.redirect(`${this.FRONTEND_HOST}/email-code-already-used`)
 			throw new BadRequestException("This code has already been used")
 		}

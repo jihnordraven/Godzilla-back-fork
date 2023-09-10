@@ -8,8 +8,8 @@ import { Profile, Strategy } from "passport-github2"
 export class GithubStrategy extends PassportStrategy(Strategy) {
 	constructor(private readonly config: ConfigService) {
 		super({
-			clientID: config.get<string>("GITHUB_CLIENT_ID"),
-			clientSecret: config.get<string>("GITHUB_CLIENT_SECRET"),
+			clientID: CONFIG.GITHUB_CLIENT_ID,
+			clientSecret: CONFIG.GITHUB_CLIENT_SECRET,
 			callbackURL: `${CONFIG.HOST}/api/v1/auth/github/callback`,
 			scope: ["public_profile", "email"]
 		})

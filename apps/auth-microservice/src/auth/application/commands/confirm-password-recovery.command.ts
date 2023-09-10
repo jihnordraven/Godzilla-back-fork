@@ -5,6 +5,7 @@ import { Response } from "express"
 import { ConfigService } from "@nestjs/config"
 import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common"
 import { AuthQueryRepository } from "../../repositories"
+import { CONFIG } from "apps/auth-microservice/src/config"
 
 export class ConfirmPasswordRecoveryCommand {
 	constructor(public readonly dto: { code: string; res: Response }) {}
@@ -20,7 +21,7 @@ export class ConfirmPasswordRecoveryHandler
 		protected readonly authQueryRepository: AuthQueryRepository
 	) {}
 
-	private FRONTEND_HOST: string = this.config.get<string>("FRONTEND_HOST")
+	private FRONTEND_HOST: string = CONFIG.FRONTEND_HOST
 
 	public async execute({ dto: { code, res } }: ConfirmPasswordRecoveryCommand): Promise<void> {
 		const isCode: PasswordRecoveryCode | null =

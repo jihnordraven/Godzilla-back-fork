@@ -370,6 +370,7 @@ const auth_command_repository_1 = __webpack_require__(/*! ../../repositories/aut
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const repositories_1 = __webpack_require__(/*! ../../repositories */ "./apps/auth-microservice/src/auth/repositories/index.ts");
+const config_2 = __webpack_require__(/*! apps/auth-microservice/src/config */ "./apps/auth-microservice/src/config/index.ts");
 class ConfirmEmailCommand {
     constructor(dto) {
         this.dto = dto;
@@ -381,7 +382,7 @@ let ConfirmEmailHandler = exports.ConfirmEmailHandler = class ConfirmEmailHandle
         this.config = config;
         this.authCommandRepository = authCommandRepository;
         this.authQueryRepository = authQueryRepository;
-        this.FRONTEND_HOST = this.config.get("FRONTEND_HOST");
+        this.FRONTEND_HOST = config_2.CONFIG.FRONTEND_HOST;
     }
     async execute({ dto: { code, res } }) {
         const emailConfirmCode = await this.authQueryRepository.findUniqueEmailCodeByCode({ code });
@@ -389,7 +390,7 @@ let ConfirmEmailHandler = exports.ConfirmEmailHandler = class ConfirmEmailHandle
             res.redirect(`${this.FRONTEND_HOST}/email-code-not-found`);
             throw new common_1.NotFoundException("Code not found");
         }
-        if (emailConfirmCode.isUsed == true) {
+        if (emailConfirmCode.isUsed === true) {
             res.redirect(`${this.FRONTEND_HOST}/email-code-already-used`);
             throw new common_1.BadRequestException("This code has already been used");
         }
@@ -440,6 +441,7 @@ const auth_command_repository_1 = __webpack_require__(/*! ../../repositories/aut
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const repositories_1 = __webpack_require__(/*! ../../repositories */ "./apps/auth-microservice/src/auth/repositories/index.ts");
+const config_2 = __webpack_require__(/*! apps/auth-microservice/src/config */ "./apps/auth-microservice/src/config/index.ts");
 class ConfirmPasswordRecoveryCommand {
     constructor(dto) {
         this.dto = dto;
@@ -451,7 +453,7 @@ let ConfirmPasswordRecoveryHandler = exports.ConfirmPasswordRecoveryHandler = cl
         this.config = config;
         this.authCommandRepository = authCommandRepository;
         this.authQueryRepository = authQueryRepository;
-        this.FRONTEND_HOST = this.config.get("FRONTEND_HOST");
+        this.FRONTEND_HOST = config_2.CONFIG.FRONTEND_HOST;
     }
     async execute({ dto: { code, res } }) {
         const isCode = await this.authQueryRepository.findUniquePasswordRecoveryCodeByCode({ code });
@@ -740,6 +742,7 @@ const repositories_1 = __webpack_require__(/*! ../../repositories */ "./apps/aut
 const date_fns_1 = __webpack_require__(/*! date-fns */ "date-fns");
 const jwt_1 = __webpack_require__(/*! @nestjs/jwt */ "@nestjs/jwt");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const config_2 = __webpack_require__(/*! apps/auth-microservice/src/config */ "./apps/auth-microservice/src/config/index.ts");
 class LoginCommand {
     constructor(authObject) {
         this.authObject = authObject;
@@ -755,16 +758,16 @@ let LoginHandler = exports.LoginHandler = class LoginHandler {
     }
     async execute({ authObject }) {
         const expiresTime = (0, date_fns_1.add)(new Date(), {
-            seconds: this.config.get("EXPIRES_REFRESH")
+            seconds: Number(config_2.CONFIG.JWT_ACCESS_EXPIRES)
         }).toString();
         const newSession = await this.authCommandRepository.addNewSession(authObject, expiresTime);
         const refreshToken = this.jwtService.sign({ sessionId: newSession.id, userID: newSession.userID }, {
-            secret: this.config.get("JWT_REFRESH_SECRET"),
-            expiresIn: `${this.config.get("EXPIRES_REFRESH")}s`
+            secret: config_2.CONFIG.JWT_REFRESH_SECRET,
+            expiresIn: Number(config_2.CONFIG.JWT_REFRESH_EXPIRES)
         });
         const accessToken = this.jwtService.sign({ userID: newSession.userID }, {
-            secret: this.config.get("JWT_ACCESS_SECRET"),
-            expiresIn: `${this.config.get("EXPIRES_ACCESS")}s`
+            secret: config_2.CONFIG.JWT_ACCESS_SECRET,
+            expiresIn: Number(config_2.CONFIG.JWT_ACCESS_EXPIRES)
         });
         return {
             refreshToken: refreshToken,
@@ -2150,8 +2153,8 @@ const passport_github2_1 = __webpack_require__(/*! passport-github2 */ "passport
 let GithubStrategy = exports.GithubStrategy = class GithubStrategy extends (0, passport_1.PassportStrategy)(passport_github2_1.Strategy) {
     constructor(config) {
         super({
-            clientID: config.get("GITHUB_CLIENT_ID"),
-            clientSecret: config.get("GITHUB_CLIENT_SECRET"),
+            clientID: config_2.CONFIG.GITHUB_CLIENT_ID,
+            clientSecret: config_2.CONFIG.GITHUB_CLIENT_SECRET,
             callbackURL: `${config_2.CONFIG.HOST}/api/v1/auth/github/callback`,
             scope: ["public_profile", "email"]
         });
@@ -2196,8 +2199,8 @@ const passport_google_oauth20_1 = __webpack_require__(/*! passport-google-oauth2
 let GoogleStrategy = exports.GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrategy)(passport_google_oauth20_1.Strategy) {
     constructor(config) {
         super({
-            clientID: config.get("GOOGLE_CLIENT_ID"),
-            clientSecret: config.get("GOOGLE_CLIENT_SECRET"),
+            clientID: config_2.CONFIG.GOOGLE_CLIENT_ID,
+            clientSecret: config_2.CONFIG.GOOGLE_CLIENT_SECRET,
             callbackURL: `${config_2.CONFIG.HOST}/api/v1/auth/google/callback`,
             scope: ["profile", "email"]
         });
@@ -2673,7 +2676,15 @@ exports.CONFIG = {
     FRONTEND_HOST: process_1.default.env.FRONTEND_HOST,
     NODEMAILER_SERVICE: process_1.default.env.NODEMAILER_SERVICE,
     NODEMAILER_USER: process_1.default.env.NODEMAILER_USER,
-    NODEMAILER_PASS: process_1.default.env.NODEMAILER_PASS
+    NODEMAILER_PASS: process_1.default.env.NODEMAILER_PASS,
+    JWT_ACCESS_SECRET: process_1.default.env.JWT_ACCESS_SECRET,
+    JWT_REFRESH_SECRET: process_1.default.env.JWT_REFRESH_SECRET,
+    JWT_ACCESS_EXPIRES: process_1.default.env.JWT_ACCESS_EXPIRES,
+    JWT_REFRESH_EXPIRES: process_1.default.env.JWT_REFRESH_EXPIRES,
+    GOOGLE_CLIENT_ID: process_1.default.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process_1.default.env.GOOGLE_CLIENT_SECRET,
+    GITHUB_CLIENT_ID: process_1.default.env.GITHUB_CLIENT_ID,
+    GITHUB_CLIENT_SECRET: process_1.default.env.GITHUB_CLIENT_SECRET
 };
 
 
