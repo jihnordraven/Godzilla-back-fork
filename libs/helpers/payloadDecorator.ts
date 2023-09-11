@@ -1,11 +1,12 @@
 import { createParamDecorator, ExecutionContext } from "@nestjs/common"
 
 export type JwtAccessPayload = {
-	userID: string
+	readonly userID: string
 }
 export type JwtRefreshPayload = {
-	userID: string
-	sessionID: string
+	readonly userID: string
+	readonly sessionID: string
+	readonly iat: number
 }
 
 export const JwtPayloadDecorator = createParamDecorator((data: unknown, ctx: ExecutionContext) => {

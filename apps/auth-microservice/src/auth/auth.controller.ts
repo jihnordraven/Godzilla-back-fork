@@ -5,7 +5,6 @@ import {
 	HttpCode,
 	HttpStatus,
 	Ip,
-	Param,
 	ParseUUIDPipe,
 	Post,
 	Res,
@@ -15,10 +14,11 @@ import {
 import { ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger"
 import { CommandBus, QueryBus } from "@nestjs/cqrs"
 import { Response } from "express"
-import { CreateUserDto, NewPassUpdateDto, PassRecoveryDto } from "./core/dto"
+import { CreateUserDto, NewPassUpdateDto, PasswordRecoveryResendDto } from "./core/dto"
 import { GithubGuard, JwtAccessGuard, JwtRefreshGuard, LocalAuthGuard } from "./protection/guards"
 import {
 	SwaggerToAuthorization,
+	SwaggerToGoogleOAuth,
 	SwaggerToLogout,
 	SwaggerToMeInfo,
 	SwaggerToNewPassword,
@@ -37,7 +37,9 @@ import {
 	NewPasswordCommand,
 	ResendEmailCodeCommand,
 	PasswordRecoveryCommand,
-	PasswordRecoveryResendCommand
+	PasswordRecoveryResendCommand,
+	PasswordRecoveryConfirmCommand,
+	ConfirmEmailCommand
 } from "./application/commands"
 import { AuthService } from "./application/auth.service"
 import { GoogleGuard } from "./protection/guards/google.guard"
@@ -45,10 +47,9 @@ import { IGoogleUser } from "./protection/strategies"
 import { GooglePayloadDecorator, UserAgentDecorator } from "../../../../libs/common/decorators"
 import { TokensEnum } from "../../../../libs/models/enums"
 import { ConfigService } from "@nestjs/config"
-import { ConfirmEmailCommand } from "./application/commands/confirm-email.command"
-import { ConfirmPasswordRecoveryCommand } from "./application/commands/confirm-password-recovery.command"
 import { GithubPayloadDecorator } from "libs/common/decorators/github-payload.decorator"
 import { MeInfoQuery } from "./application/queries"
+import { ResendEmailCodeDto } from "./core/dto/resend-email-code.dto"
 
 type SetTokensToResponseType = {
 	readonly tokens: TokensObjectType
@@ -68,85 +69,83 @@ export class AuthController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToRegistration()
 	@Post("registration")
-	async localRegister(@Body() createUser: CreateUserDto): Promise<void> {
+	public async registration(@Body() createUser: CreateUserDto): Promise<void> {
 		await this.commandBus.execute(new LocalRegisterCommand(createUser))
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToRegistrationEmailResending()
-	@Post("registration-email-resending")
-	async userRegistrationResending(@Body() { email }: { email: string }): Promise<void> {
-		await this.commandBus.execute(new ResendEmailCodeCommand({ email }))
+	@Post("registration-email-resend")
+	public async registrationEmailResen(
+		@Body() { email, code }: ResendEmailCodeDto
+	): Promise<void> {
+		this.commandBus.execute(new ResendEmailCodeCommand({ email, code }))
 	}
 
 	@HttpCode(HttpStatus.OK)
 	@ApiExcludeEndpoint()
 	@Get("registration-confirmation")
-	async userRegistrationConfirm(
+	public async registrationConfirmation(
 		@Query("code", new ParseUUIDPipe()) code: string,
 		@Res() res: Response
 	): Promise<void> {
-		await this.commandBus.execute(new ConfirmEmailCommand({ code, res }))
+		this.commandBus.execute(new ConfirmEmailCommand({ code, res }))
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToPasswordRecovery()
 	@Post("password-recovery")
-	async userCreateNewPass(@Body() { email }: PassRecoveryDto): Promise<void> {
+	public async userCreateNewPass(@Body() { email }: ResendEmailCodeDto): Promise<void> {
 		await this.commandBus.execute(new PasswordRecoveryCommand({ email }))
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToPasswordEmailResending()
-	@Post("password-email-resending")
-	async passwordEmailResending(@Body() { email }: { email: string }): Promise<void> {
-		await this.commandBus.execute(new PasswordRecoveryResendCommand({ email }))
+	@Post("password-recovery-resend")
+	public async passwordEmailResending(
+		@Body() { code }: PasswordRecoveryResendDto
+	): Promise<void> {
+		await this.commandBus.execute(new PasswordRecoveryResendCommand({ code }))
 	}
 
 	@HttpCode(HttpStatus.OK)
 	@ApiExcludeEndpoint()
 	@Get("password-recovery-confirmation")
-	async newPasswordConfirm(@Query("code") code: string, @Res() res: Response): Promise<void> {
-		await this.commandBus.execute(new ConfirmPasswordRecoveryCommand({ code, res }))
+	public async newPasswordConfirm(
+		@Query("code") code: string,
+		@Res() res: Response
+	): Promise<void> {
+		await this.commandBus.execute(new PasswordRecoveryConfirmCommand({ code, res }))
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToNewPassword()
 	@Post("new-password")
-	async userUpdateNewPass(
-		@Body() { newPassword, recoveryCode }: NewPassUpdateDto
-	): Promise<void> {
-		await this.commandBus.execute(new NewPasswordCommand({ recoveryCode, newPassword }))
+	public async userUpdateNewPass(@Body() dto: NewPassUpdateDto): Promise<void> {
+		await this.commandBus.execute(new NewPasswordCommand(dto))
 	}
 
 	@HttpCode(HttpStatus.OK)
 	@UseGuards(LocalAuthGuard)
 	@SwaggerToAuthorization()
 	@Post("login")
-	async userAuthorization(
-		@JwtPayloadDecorator()
-		jwtPayload: JwtAccessPayload,
+	public async userAuthorization(
+		@JwtPayloadDecorator() payload: JwtAccessPayload,
 		@Ip() userIP: string,
 		@UserAgentDecorator() userAgent: string,
 		@Res({ passthrough: true }) res: Response
 	): Promise<LoginResType> {
-		const authObjectDTO: AuthObjectType = {
-			userIP,
-			userAgent,
-			userID: jwtPayload.userID
-		}
 		const tokens: TokensObjectType = await this.commandBus.execute(
-			new LoginCommand(authObjectDTO)
+			new LoginCommand({ userIP, userAgent, userID: payload.userID })
 		)
-
 		return this.setTokensToResponse({ tokens, res })
 	}
 
 	@HttpCode(HttpStatus.OK)
 	@UseGuards(JwtRefreshGuard)
 	@SwaggerToRefreshToken()
-	@Post("new-tokens")
-	async userRefreshToken(
+	@Post("refresh-token")
+	public async userRefreshToken(
 		@JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
 		@Ip() userIP: string,
 		@UserAgentDecorator() userAgent: string,
@@ -169,12 +168,11 @@ export class AuthController {
 	@UseGuards(JwtRefreshGuard)
 	@SwaggerToLogout()
 	@Post("logout")
-	async userLogout(
-		@JwtPayloadDecorator() jwtPayload: JwtRefreshPayload,
+	public async logout(
+		@JwtPayloadDecorator() { userID, sessionID }: JwtRefreshPayload,
 		@Res({ passthrough: true }) response: Response
-	) {
-		await this.commandBus.execute(new LogoutCommand(jwtPayload))
-
+	): Promise<void> {
+		await this.commandBus.execute(new LogoutCommand({ userID, sessionID }))
 		response.clearCookie("refreshToken")
 	}
 
@@ -182,25 +180,26 @@ export class AuthController {
 	@UseGuards(JwtAccessGuard)
 	@SwaggerToMeInfo()
 	@Get("me")
-	async meInfo(@JwtPayloadDecorator() { userID }: JwtAccessPayload): Promise<MeInfoType> {
+	public async meInfo(@JwtPayloadDecorator() { userID }: JwtAccessPayload): Promise<MeInfoType> {
 		return this.queryBus.execute(new MeInfoQuery({ userID }))
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@UseGuards(GoogleGuard)
 	@Get("google")
-	async google() {}
+	public google(): void {}
 
 	@UseGuards(GoogleGuard)
 	@HttpCode(HttpStatus.OK)
+	@SwaggerToGoogleOAuth()
 	@Get("google/callback")
-	async googleCallback(
-		@GooglePayloadDecorator() dto: IGoogleUser,
+	public async googleCallback(
+		@GooglePayloadDecorator() googleUser: IGoogleUser,
 		@Ip() userIP: string,
 		@UserAgentDecorator() userAgent: string,
 		@Res() res: Response
 	): Promise<LoginResType> {
-		const tokens: TokensObjectType = await this.authService.googleRegister(dto, {
+		const tokens: TokensObjectType = await this.authService.googleRegister(googleUser, {
 			userIP,
 			userAgent
 		})
@@ -209,11 +208,11 @@ export class AuthController {
 
 	@Get("github")
 	@UseGuards(GithubGuard)
-	async github(): Promise<void> {}
+	public github(): void {}
 
 	@Get("github/callback")
 	@UseGuards(GithubGuard)
-	async githubCallback(
+	public async githubCallback(
 		@GithubPayloadDecorator() dto: any,
 		@Ip() userIP: string,
 		@UserAgentDecorator() userAgent: string,

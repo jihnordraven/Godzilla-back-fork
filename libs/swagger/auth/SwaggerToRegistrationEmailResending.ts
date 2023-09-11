@@ -3,7 +3,7 @@ import { ApiOperation, ApiResponse } from "@nestjs/swagger"
 
 export function SwaggerToRegistrationEmailResending(): MethodDecorator {
 	return applyDecorators(
-		ApiOperation({ summary: "Resending an activation code by email" }),
+		ApiOperation({ summary: "Resending an activation code by email or an old code" }),
 		ApiResponse({
 			status: HttpStatus.NO_CONTENT,
 			description: "New confirmation code was sent to user's email"

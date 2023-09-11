@@ -2,7 +2,7 @@ import { PassportStrategy } from "@nestjs/passport"
 import { Strategy } from "passport-jwt"
 import { Injectable, UnauthorizedException } from "@nestjs/common"
 import { AuthService } from "../../application/auth.service"
-import { RefreshCookieExtractor } from "../../../../../../libs/helpers"
+import { JwtRefreshPayload, RefreshCookieExtractor } from "../../../../../../libs/helpers"
 import { ConfigService } from "@nestjs/config"
 
 @Injectable()
@@ -18,15 +18,14 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, "refreshToken
 		})
 	}
 
-	async validate(payload: any) {
+	async validate(payload: JwtRefreshPayload) {
 		const validateSession: boolean = await this.authService.checkedActiveSession(
-			payload.sessionId,
+			payload.sessionID,
 			payload.iat
 		)
-
 		if (!validateSession) {
-			throw new UnauthorizedException("Session expired")
+			throw new UnauthorizedException("Unable to logout")
 		}
-		return { userId: payload.userId, sessionId: payload.sessionId }
+		return { userID: payload.userID, sessionID: payload.sessionID }
 	}
 }

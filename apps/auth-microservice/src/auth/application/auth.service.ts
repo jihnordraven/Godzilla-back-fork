@@ -1,11 +1,16 @@
-import { Injectable } from "@nestjs/common"
+import {
+	BadRequestException,
+	ForbiddenException,
+	Injectable,
+	UnauthorizedException
+} from "@nestjs/common"
 import { AuthCommandRepository, AuthQueryRepository } from "../repositories"
 import { JwtAccessPayload } from "../../../../../libs/helpers"
 import { AuthObjectType, TokensObjectType } from "../core/models"
 import { CommandBus } from "@nestjs/cqrs"
 import { GoogleRegisterCommand, LoginCommand, LogoutCommand } from "./commands"
 import { BcryptAdapter } from "../../adapters"
-import { GoogleProfile, Sessions, User } from "@prisma/client"
+import { ConfirmEmailStatusEnum, GoogleProfile, Sessions, User } from "@prisma/client"
 import { IGoogleUser } from "../protection/strategies"
 
 @Injectable()
@@ -19,10 +24,10 @@ export class AuthService {
 
 	async validateLogin(email: string, password: string): Promise<JwtAccessPayload | null> {
 		const user: User | null = await this.authQueryRepository.findUniqueUserByEmail({ email })
-
-		if (!user || user.isBlocked === true) {
-			return null
+		if (!user) {
+			throw new UnauthorizedException("Invalid login or password")
 		}
+		if (user.isBlocked) throw new ForbiddenException("User has been blocked")
 
 		const validatePassword: boolean = await this.bcrypt.compare({
 			password,
@@ -30,7 +35,10 @@ export class AuthService {
 		})
 
 		if (!validatePassword) {
-			return null
+			throw new UnauthorizedException("Invalid login or password")
+		}
+		if (user.isConfirmed !== ConfirmEmailStatusEnum.CONFIRMED) {
+			throw new ForbiddenException("You have to confirm your email")
 		}
 
 		return { userID: user.id }
@@ -43,10 +51,11 @@ export class AuthService {
 	): Promise<TokensObjectType> {
 		await this.commandBus.execute(new LogoutCommand({ userID, sessionID }))
 
-		return await this.commandBus.execute(new LoginCommand(authObjectDTO))
+		return this.commandBus.execute(new LoginCommand(authObjectDTO))
 	}
 
 	async checkedActiveSession(sessionID: string, expiredSecondsToken: number): Promise<boolean> {
+		console.log(sessionID, expiredSecondsToken)
 		if (!sessionID) {
 			return false
 		}
@@ -54,13 +63,11 @@ export class AuthService {
 		const activeSession: Sessions | null = await this.authQueryRepository.findUniqueSessionByID(
 			{ sessionID }
 		)
-
 		if (!activeSession) {
 			return false
 		}
 
 		const lastActiveToSecond = Number(Date.parse(activeSession.expires).toString().slice(0, 10))
-
 		if (expiredSecondsToken - lastActiveToSecond > 2) {
 			return false
 		}

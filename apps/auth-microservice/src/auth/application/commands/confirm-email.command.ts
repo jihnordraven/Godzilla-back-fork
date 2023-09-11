@@ -1,9 +1,7 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
-import { EmailConfirmCode } from "@prisma/client"
+import { ConfirmEmailStatusEnum, EmailCode, User } from "@prisma/client"
 import { AuthCommandRepository } from "../../repositories/auth-command.repository"
 import { Response } from "express"
-import { ConfigService } from "@nestjs/config"
-import { BadRequestException, NotFoundException } from "@nestjs/common"
 import { AuthQueryRepository } from "../../repositories"
 import { CONFIG } from "apps/auth-microservice/src/config"
 
@@ -14,7 +12,6 @@ export class ConfirmEmailCommand {
 @CommandHandler(ConfirmEmailCommand)
 export class ConfirmEmailHandler implements ICommandHandler<ConfirmEmailCommand> {
 	constructor(
-		private readonly config: ConfigService,
 		private readonly authCommandRepository: AuthCommandRepository,
 		private readonly authQueryRepository: AuthQueryRepository
 	) {}
@@ -22,32 +19,33 @@ export class ConfirmEmailHandler implements ICommandHandler<ConfirmEmailCommand>
 	private readonly FRONTEND_HOST: string = CONFIG.FRONTEND_HOST
 
 	async execute({ dto: { code, res } }: ConfirmEmailCommand): Promise<void> {
-		const emailConfirmCode: EmailConfirmCode | null =
+		const emailCode: EmailCode | null =
 			await this.authQueryRepository.findUniqueEmailCodeByCode({ code })
-		if (!emailConfirmCode) {
-			res.redirect(`${this.FRONTEND_HOST}/email-code-not-found`)
-			throw new NotFoundException("Code not found")
-		}
 
-		if (emailConfirmCode.isUsed === true) {
-			res.redirect(`${this.FRONTEND_HOST}/email-code-already-used`)
-			throw new BadRequestException("This code has already been used")
-		}
-
-		const isCodeExpired: boolean = new Date(emailConfirmCode.exp) <= new Date()
-		if (isCodeExpired) {
-			await this.authCommandRepository.deactivateAllEmailCodes({
-				userID: emailConfirmCode.userID
-			})
-			res.redirect(`${this.FRONTEND_HOST}/email-code-expired`)
-			throw new BadRequestException("Code has expired")
-		}
-
-		await this.authCommandRepository.confirmUserEmail({ userId: emailConfirmCode.userID })
-		await this.authCommandRepository.deactivateAllEmailCodes({
-			userID: emailConfirmCode.userID
+		const user: User | null = await this.authQueryRepository.findUniqueUserByID({
+			userID: emailCode.userID
 		})
+		if (user.isConfirmed === ConfirmEmailStatusEnum.CONFIRMED) {
+			res.redirect(`${this.FRONTEND_HOST}`)
+			return null
+		}
 
-		res.redirect(`${this.FRONTEND_HOST}/email-code-success`)
+		if (emailCode.isUsed) {
+			res.redirect(`${this.FRONTEND_HOST}`)
+			return null
+		}
+
+		const isCodeExpired: boolean = new Date(emailCode.expiresIn) <= new Date()
+		if (isCodeExpired) {
+			await this.authCommandRepository.deactivateOneEmailCode({ code })
+			res.redirect(`${this.FRONTEND_HOST}/auth/expired/${emailCode.code}`)
+			return null
+		}
+
+		await this.authCommandRepository.confirmUserEmail({ userId: emailCode.userID })
+		await this.authCommandRepository.deactivateOneEmailCode({ code })
+
+		res.redirect(`${this.FRONTEND_HOST}/auth/confirm`)
+		return null
 	}
 }

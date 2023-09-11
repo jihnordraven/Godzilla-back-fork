@@ -1,12 +1,6 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, NotFoundException } from "@nestjs/common"
 import { PrismaService } from "../../prisma/prisma.service"
-import {
-	EmailConfirmCode,
-	GoogleProfile,
-	PasswordRecoveryCode,
-	Sessions,
-	User
-} from "@prisma/client"
+import { EmailCode, GoogleProfile, Sessions, User } from "@prisma/client"
 
 @Injectable()
 export class AuthQueryRepository {
@@ -30,8 +24,12 @@ export class AuthQueryRepository {
 		})
 	}
 
-	async findUniqueEmailCodeByCode({ code }: { code: string }): Promise<EmailConfirmCode | null> {
-		return this.prisma.emailConfirmCode.findUnique({ where: { code } })
+	async findUniqueEmailCodeByCode({ code }: { code: string }): Promise<EmailCode | null> {
+		const emailCode: EmailCode | null = await this.prisma.emailCode.findUnique({
+			where: { code }
+		})
+		if (!emailCode) throw new NotFoundException("Code not found")
+		return emailCode
 	}
 
 	async findUniqueSessionByID({ sessionID }: { sessionID: string }): Promise<Sessions | null> {
@@ -52,13 +50,5 @@ export class AuthQueryRepository {
 		userID: string
 	}): Promise<GoogleProfile | null> {
 		return this.prisma.googleProfile.findUnique({ where: { userID } })
-	}
-
-	public async findUniquePasswordRecoveryCodeByCode({
-		code
-	}: {
-		code: string
-	}): Promise<PasswordRecoveryCode | null> {
-		return this.prisma.passwordRecoveryCode.findUnique({ where: { code } })
 	}
 }

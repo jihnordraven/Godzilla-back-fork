@@ -1,10 +1,9 @@
-import { IsEmail, IsNotEmpty, IsString, Matches, Validate } from "class-validator"
+import { IsNotEmpty, IsString, Matches } from "class-validator"
 import { TrimDecorator } from "../../../../../../libs/helpers"
-import { CheckedEmailToBase } from "../../class-validators"
 import { PassRecoveryType } from "../models"
 import { ApiProperty } from "@nestjs/swagger"
 
-export class PassRecoveryDto implements PassRecoveryType {
+export class PasswordRecoveryDto implements PassRecoveryType {
 	//@Validate(CheckedEmailToBase)
 	@TrimDecorator()
 	@IsString()

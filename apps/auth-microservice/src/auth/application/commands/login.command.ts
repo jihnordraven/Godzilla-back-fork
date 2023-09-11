@@ -30,7 +30,7 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
 		)
 
 		const refreshToken: string = this.jwtService.sign(
-			{ sessionId: newSession.id, userID: newSession.userID },
+			{ sessionID: newSession.id, userID: newSession.userID },
 			{
 				secret: CONFIG.JWT_REFRESH_SECRET,
 				expiresIn: Number(CONFIG.JWT_REFRESH_EXPIRES)

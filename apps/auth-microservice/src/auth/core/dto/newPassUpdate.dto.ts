@@ -1,6 +1,5 @@
 import { IsNotEmpty, IsString, IsUUID, Length, Matches, Validate } from "class-validator"
 import { TrimDecorator } from "../../../../../../libs/helpers"
-import { CheckedConfirmCode } from "../../class-validators"
 import { ApiProperty } from "@nestjs/swagger"
 import { NewPassUpdateType } from "../models"
 
@@ -21,7 +20,7 @@ export class NewPassUpdateDto implements NewPassUpdateType {
 			"^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~])[A-Za-z0-9!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~]+$",
 		nullable: false
 	})
-	readonly newPassword: string
+	readonly password: string
 
 	//@Validate(CheckedConfirmCode)
 	@TrimDecorator()
@@ -33,5 +32,5 @@ export class NewPassUpdateDto implements NewPassUpdateType {
 		type: String,
 		nullable: false
 	})
-	readonly recoveryCode: string
+	readonly code: string
 }

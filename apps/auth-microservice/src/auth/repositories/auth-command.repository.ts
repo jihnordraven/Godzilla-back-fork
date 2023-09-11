@@ -6,14 +6,7 @@ import {
 	CreateGoogleProfileType,
 	LocalRegisterType
 } from "../core/models"
-import {
-	ConfirmEmailStatusEnum,
-	EmailConfirmCode,
-	GoogleProfile,
-	PasswordRecoveryCode,
-	Sessions,
-	User
-} from "@prisma/client"
+import { ConfirmEmailStatusEnum, EmailCode, GoogleProfile, Sessions, User } from "@prisma/client"
 import { red } from "colorette"
 import { v4 } from "uuid"
 import { add } from "date-fns"
@@ -39,11 +32,11 @@ export class AuthCommandRepository {
 	}
 
 	async createEmailCode({ userID }: CreateEmailCodeType): Promise<string> {
-		const emailCode: EmailConfirmCode | void = await this.prisma.emailConfirmCode
+		const emailCode: EmailCode | void = await this.prisma.emailCode
 			.create({
 				data: {
 					code: v4(),
-					exp: add(new Date(), { minutes: 10 }),
+					expiresIn: add(new Date(), { minutes: 10 }),
 					userID
 				}
 			})
@@ -52,8 +45,12 @@ export class AuthCommandRepository {
 		return emailCode.code
 	}
 
-	async deactivateAllEmailCodes({ userID }: { userID: string }): Promise<void> {
-		await this.prisma.emailConfirmCode.updateMany({
+	public async deactivateOneEmailCode({ code }: { code: string }): Promise<void> {
+		await this.prisma.emailCode.update({ where: { code }, data: { isUsed: true } })
+	}
+
+	async deactivateManyEmailCodes({ userID }: { userID: string }): Promise<void> {
+		await this.prisma.emailCode.updateMany({
 			where: { userID },
 			data: { isUsed: true }
 		})
@@ -131,38 +128,5 @@ export class AuthCommandRepository {
 		} else {
 			throw new InternalServerErrorException("Unable to create google profile")
 		}
-	}
-
-	public async createPasswordRecoveryCode({
-		userID
-	}: {
-		userID: string
-	}): Promise<PasswordRecoveryCode> {
-		const passwordRecoveryCode: PasswordRecoveryCode | void =
-			await this.prisma.passwordRecoveryCode
-				.create({
-					data: {
-						code: v4(),
-						exp: add(new Date(), { minutes: 10 }),
-						userID
-					}
-				})
-				.catch((err: string) => this.logger.error(red(err)))
-		if (!passwordRecoveryCode)
-			throw new InternalServerErrorException("Unable to create new Password Recovery Code")
-		return passwordRecoveryCode
-	}
-
-	public async deactivateAllPasswordRecoveryCodes({
-		userID
-	}: {
-		userID: string
-	}): Promise<boolean> {
-		return Boolean(
-			await this.prisma.passwordRecoveryCode.updateMany({
-				where: { userID },
-				data: { isUsed: true }
-			})
-		)
 	}
 }

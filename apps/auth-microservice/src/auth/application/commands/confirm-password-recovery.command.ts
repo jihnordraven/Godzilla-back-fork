@@ -1,19 +1,19 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
-import { PasswordRecoveryCode } from "@prisma/client"
+import { EmailCode } from "@prisma/client"
 import { AuthCommandRepository } from "../../repositories/auth-command.repository"
-import { Response } from "express"
 import { ConfigService } from "@nestjs/config"
-import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common"
+import { BadRequestException } from "@nestjs/common"
 import { AuthQueryRepository } from "../../repositories"
 import { CONFIG } from "apps/auth-microservice/src/config"
+import { PasswordRecoveryConfirmDto } from "../../core/dto"
 
-export class ConfirmPasswordRecoveryCommand {
-	constructor(public readonly dto: { code: string; res: Response }) {}
+export class PasswordRecoveryConfirmCommand {
+	constructor(public readonly dto: PasswordRecoveryConfirmDto) {}
 }
 
-@CommandHandler(ConfirmPasswordRecoveryCommand)
+@CommandHandler(PasswordRecoveryConfirmCommand)
 export class ConfirmPasswordRecoveryHandler
-	implements ICommandHandler<ConfirmPasswordRecoveryCommand>
+	implements ICommandHandler<PasswordRecoveryConfirmCommand>
 {
 	constructor(
 		protected readonly config: ConfigService,
@@ -23,31 +23,25 @@ export class ConfirmPasswordRecoveryHandler
 
 	private FRONTEND_HOST: string = CONFIG.FRONTEND_HOST
 
-	public async execute({ dto: { code, res } }: ConfirmPasswordRecoveryCommand): Promise<void> {
-		const isCode: PasswordRecoveryCode | null =
-			await this.authQueryRepository.findUniquePasswordRecoveryCodeByCode({ code })
-		if (!isCode) {
-			res.redirect(`${this.FRONTEND_HOST}/password-recovery-code-not-found`)
-			throw new NotFoundException("Code not found")
+	public async execute({ dto: { code, res } }: PasswordRecoveryConfirmCommand): Promise<void> {
+		const emailCode: EmailCode | null =
+			await this.authQueryRepository.findUniqueEmailCodeByCode({ code })
+
+		if (emailCode.isUsed) {
+			await this.authCommandRepository.deactivateOneEmailCode({ code })
+			res.redirect(`${this.FRONTEND_HOST}/recovery`)
+			return null
 		}
 
-		if ((isCode.isUsed = true)) {
-			await this.authCommandRepository.deactivateAllPasswordRecoveryCodes({
-				userID: isCode.userID
-			})
-			res.redirect(`${this.FRONTEND_HOST}/password-recovery-code-already-used`)
-			throw new ConflictException("This code has already been used")
-		}
-
-		const isCodeExpired: boolean = new Date(isCode.exp) <= new Date()
+		const isCodeExpired: boolean = new Date(emailCode.expiresIn) <= new Date()
 		if (isCodeExpired) {
-			await this.authCommandRepository.deactivateAllPasswordRecoveryCodes({
-				userID: isCode.userID
+			await this.authCommandRepository.deactivateOneEmailCode({
+				code: emailCode.code
 			})
-			res.redirect(`${this.FRONTEND_HOST}/password-recovery-code-expired`)
+			res.redirect(`${this.FRONTEND_HOST}/auth/expired/${emailCode.code}`)
 			throw new BadRequestException("Code has expired")
 		}
 
-		res.redirect(`${this.FRONTEND_HOST}/password-recovery-code-success/code=${isCode.code}`)
+		res.redirect(`${this.FRONTEND_HOST}/auth/recovery/${emailCode.code}`)
 	}
 }

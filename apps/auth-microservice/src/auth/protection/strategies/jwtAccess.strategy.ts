@@ -25,7 +25,6 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy) {
 	}
 
 	async validate(payload: JwtAccessPayload): Promise<JwtAccessPayload> {
-		console.log(payload.userID)
 		return { userID: payload.userID }
 	}
 }

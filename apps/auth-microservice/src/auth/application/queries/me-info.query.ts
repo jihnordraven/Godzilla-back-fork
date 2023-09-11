@@ -3,9 +3,10 @@ import { AuthQueryRepository } from "../../repositories"
 import { MeInfoType } from "../../core/models"
 import { NotFoundException } from "@nestjs/common"
 import { User } from "@prisma/client"
+import { MeInfoDto } from "../../core/dto"
 
 export class MeInfoQuery {
-	constructor(public readonly data: { userID: string }) {}
+	constructor(public readonly data: MeInfoDto) {}
 }
 
 @QueryHandler(MeInfoQuery)

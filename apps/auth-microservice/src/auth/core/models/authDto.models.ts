@@ -5,8 +5,8 @@ export type CreateUserType = {
 }
 
 export type NewPassUpdateType = {
-	newPassword: string
-	recoveryCode: string
+	password: string
+	code: string
 }
 
 export type PassRecoveryType = {
@@ -14,11 +14,11 @@ export type PassRecoveryType = {
 }
 
 export type EmailResendingType = {
-	userId: string
+	email: string
 }
 
 export type PasswordEmailResendingType = {
-	userId: string
+	email: string
 }
 
 export type LocalRegisterType = {

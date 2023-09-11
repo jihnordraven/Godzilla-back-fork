@@ -9,21 +9,20 @@ datasource db {
 }
 
 model User {
-  id                    String                 @id @default(uuid())
-  username              String                 @unique()
-  email                 String                 @unique()
-  hashPassword          String                 @map("hash_password")
-  isBlocked             Boolean                @default(false) @map("is_blocked")
-  isConfirmed           ConfirmEmailStatusEnum @default(PENDING) @map("is_confirmed")
-  Comments              Comment[]
-  EmailConfirmCodes     EmailConfirmCode[]
-  PasswordRecoveryCodes PasswordRecoveryCode[]
-  LikesInfoComment      LikesInfoComment[]
-  LikesInfoPost         LikesInfoPost[]
-  Posts                 Post[]
-  profile               Profile?
-  Sessions              Sessions[]
-  GoogleProfile         GoogleProfile?
+  id               String                 @id @default(uuid())
+  username         String                 @unique()
+  email            String                 @unique()
+  hashPassword     String                 @map("hash_password")
+  isBlocked        Boolean                @default(false) @map("is_blocked")
+  isConfirmed      ConfirmEmailStatusEnum @default(PENDING) @map("is_confirmed")
+  Comments         Comment[]
+  EmailCodes       EmailCode[]
+  LikesInfoComment LikesInfoComment[]
+  LikesInfoPost    LikesInfoPost[]
+  Posts            Post[]
+  Profile          Profile?
+  Sessions         Sessions[]
+  GoogleProfile    GoogleProfile?
 
   isDeleted Boolean  @default(false) @map("is_deleted")
   createdAt DateTime @default(now()) @map("created_at")
@@ -48,30 +47,16 @@ model GoogleProfile {
   @@map("google_profiles")
 }
 
-model EmailConfirmCode {
-  id     String   @id @unique @default(uuid())
-  code   String   @unique
-  exp    DateTime
-  userID String   @map("user_id")
-  user   User     @relation(fields: [userID], references: [id], onDelete: Cascade)
-  isUsed Boolean  @default(false) @map("is_used")
-
+model EmailCode {
+  id        String   @id @unique @default(uuid())
+  code      String   @unique
+  expiresIn DateTime @map("expires_in")
+  isUsed    Boolean  @default(false) @map("is_used")
+  userID    String   @map("user_id")
+  user      User     @relation(fields: [userID], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@map("email_confirm_codes")
-}
-
-model PasswordRecoveryCode {
-  id     String   @id @unique @default(uuid())
-  code   String   @unique
-  exp    DateTime
-  userID String   @map("user_id")
-  user   User     @relation(fields: [userID], references: [id], onDelete: Cascade)
-  isUsed Boolean  @default(false) @map("is_used")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("password_recovery_codes")
+  @@map("email_codes")
 }
 
 model Profile {

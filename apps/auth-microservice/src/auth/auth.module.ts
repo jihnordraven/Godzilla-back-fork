@@ -11,21 +11,10 @@ import { AuthService } from "./application/auth.service"
 import { PrismaModule } from "../prisma/prisma.module"
 import { PassportModule } from "@nestjs/passport"
 import { BcryptAdapter, MailerAdapter } from "../adapters"
-import {
-	LocalRegisterHandler,
-	ResendEmailCodeHandler,
-	PasswordRecoveryHandler,
-	NewPasswordHandler,
-	PasswordRecoveryResendHandler,
-	GoogleRegisterHandler,
-	ConfirmEmailHandler,
-	ConfirmPasswordRecoveryHandler,
-	LogoutHandler,
-	LoginHandler
-} from "./application/commands"
 import { JwtModule } from "@nestjs/jwt"
 import { AuthCommandRepository, AuthQueryRepository } from "./repositories"
-import { MeInfoHandler } from "./application/queries"
+import { AUTH_QUERY_HANDLERS } from "./application/queries"
+import { AUTH_COMMAND_HANDLERS } from "./application/commands"
 
 const validators = [
 	CheckedEmailToBase,
@@ -33,21 +22,6 @@ const validators = [
 	CheckedUniqueUsername,
 	CheckedUniqueEmail
 ]
-
-const commandHandlers = [
-	LoginHandler,
-	LocalRegisterHandler,
-	ResendEmailCodeHandler,
-	PasswordRecoveryHandler,
-	PasswordRecoveryResendHandler,
-	NewPasswordHandler,
-	LogoutHandler,
-	GoogleRegisterHandler,
-	ConfirmPasswordRecoveryHandler,
-	ConfirmEmailHandler
-]
-
-const queryHandlers = [MeInfoHandler]
 
 const adapters = [BcryptAdapter, MailerAdapter]
 
@@ -62,8 +36,8 @@ const modules = [CqrsModule, PrismaModule, PassportModule, JwtModule]
 		AuthQueryRepository,
 		...validators,
 		...adapters,
-		...commandHandlers,
-		...queryHandlers
+		...AUTH_COMMAND_HANDLERS,
+		...AUTH_QUERY_HANDLERS
 	],
 	exports: [AuthService]
 })
