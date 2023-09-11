@@ -1,9 +1,8 @@
 import { TrimDecorator } from "../../../../../../libs/helpers"
-import { IsEmail, IsNotEmpty, IsString, Length, Matches, Validate } from "class-validator"
+import { IsNotEmpty, IsString, Length, Matches } from "class-validator"
 import { ApiProperty } from "@nestjs/swagger"
-import { CheckedUniqueEmail, CheckedUniqueUsername } from "../../class-validators"
 import { CreateUserType } from "../models"
-import { emailPattern, passwordPattern } from "libs/common/patterns"
+import { emailPattern, passwordPattern } from "../../../../../../libs/common/patterns"
 
 export class CreateUserDto implements CreateUserType {
 	//@Validate(CheckedUniqueUsername)

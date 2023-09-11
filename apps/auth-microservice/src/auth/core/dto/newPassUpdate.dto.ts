@@ -1,8 +1,8 @@
-import { IsNotEmpty, IsString, IsUUID, Length, Matches, Validate } from "class-validator"
+import { IsNotEmpty, IsString, IsUUID, Length, Matches } from "class-validator"
 import { TrimDecorator } from "../../../../../../libs/helpers"
 import { ApiProperty } from "@nestjs/swagger"
 import { NewPassUpdateType } from "../models"
-import { passwordPattern } from "libs/common/patterns"
+import { passwordPattern } from "../../../../../../libs/common/patterns"
 
 export class NewPassUpdateDto implements NewPassUpdateType {
 	@TrimDecorator()

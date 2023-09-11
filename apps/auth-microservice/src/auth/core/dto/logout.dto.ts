@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { IsNotEmpty, IsString, IsUUID } from "class-validator"
-import { TrimDecorator } from "libs/helpers"
+import { TrimDecorator } from "../../../../../../libs/helpers"
 
 export class LogoutDto {
 	@TrimDecorator()

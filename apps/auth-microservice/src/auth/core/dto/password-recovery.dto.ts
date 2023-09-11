@@ -2,7 +2,7 @@ import { IsNotEmpty, IsString, Matches } from "class-validator"
 import { TrimDecorator } from "../../../../../../libs/helpers"
 import { PassRecoveryType } from "../models"
 import { ApiProperty } from "@nestjs/swagger"
-import { emailPattern } from "libs/common/patterns"
+import { emailPattern } from "../../../../../../libs/common/patterns"
 
 export class PasswordRecoveryDto implements PassRecoveryType {
 	//@Validate(CheckedEmailToBase)

@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { IsOptional, IsString, IsUUID, Matches } from "class-validator"
-import { emailPattern } from "libs/common/patterns"
-import { TrimDecorator } from "libs/helpers"
+import { emailPattern } from "../../../../../../libs/common/patterns"
+import { TrimDecorator } from "../../../../../../libs/helpers"
 
 export class ResendEmailCodeDto {
 	@TrimDecorator()
