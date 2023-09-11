@@ -1,6 +1,6 @@
 import { SendMailOptions, Transporter, createTransport } from "nodemailer"
 import { CONFIG } from "../config"
-import { emailConfirmHTML } from "libs/static/templates"
+import { emailConfirmHTML } from "../../../../libs/static/templates"
 
 type SendMailType = {
 	readonly email: string
@@ -24,7 +24,6 @@ export class MailerAdapter {
 			to: email,
 			from: "jihnordraven@gmail.com",
 			subject: "Email confirmaiton",
-			// html: `<a href='${CONFIG.HOST}/api/v1/auth/registration-confirmation?code=${code}'>Confirm email</a>`
 			html: emailConfirmHTML({ HOST: CONFIG.HOST, code })
 		})
 	}
