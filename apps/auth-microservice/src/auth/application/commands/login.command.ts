@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
-import { AuthCommandRepository, AuthQueryRepository } from "../../repositories"
+import { AuthRepository } from "../../repositories"
 import { add } from "date-fns"
 import { JwtService } from "@nestjs/jwt"
 import { AuthObjectType, TokensObjectType } from "../../core/models"
@@ -15,8 +15,7 @@ export class LoginCommand {
 export class LoginHandler implements ICommandHandler<LoginCommand> {
 	constructor(
 		protected readonly config: ConfigService,
-		protected readonly authCommandRepository: AuthCommandRepository,
-		protected readonly authQueryRepository: AuthQueryRepository,
+		protected readonly authRepository: AuthRepository,
 		protected readonly jwtService: JwtService
 	) {}
 	public async execute({ authObject }: LoginCommand): Promise<TokensObjectType> {
@@ -24,7 +23,7 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
 			seconds: Number(CONFIG.JWT_ACCESS_EXPIRES)
 		}).toString()
 
-		const newSession: Sessions = await this.authCommandRepository.addNewSession(
+		const newSession: Sessions = await this.authRepository.addNewSession(
 			authObject,
 			expiresTime
 		)

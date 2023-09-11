@@ -12,9 +12,14 @@ import {
 	Query
 } from "@nestjs/common"
 import { ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger"
-import { CommandBus, QueryBus } from "@nestjs/cqrs"
+import { CommandBus } from "@nestjs/cqrs"
 import { Response } from "express"
-import { CreateUserDto, NewPassUpdateDto, PasswordRecoveryResendDto } from "./core/dto"
+import {
+	CreateUserDto,
+	NewPassUpdateDto,
+	PasswordRecoveryDto,
+	PasswordRecoveryResendDto
+} from "./core/dto"
 import { GithubGuard, JwtAccessGuard, JwtRefreshGuard, LocalAuthGuard } from "./protection/guards"
 import {
 	SwaggerToAuthorization,
@@ -48,8 +53,8 @@ import { GooglePayloadDecorator, UserAgentDecorator } from "../../../../libs/com
 import { TokensEnum } from "../../../../libs/models/enums"
 import { ConfigService } from "@nestjs/config"
 import { GithubPayloadDecorator } from "libs/common/decorators/github-payload.decorator"
-import { MeInfoQuery } from "./application/queries"
 import { ResendEmailCodeDto } from "./core/dto/resend-email-code.dto"
+import { AuthQueryRepository } from "./repositories"
 
 type SetTokensToResponseType = {
 	readonly tokens: TokensObjectType
@@ -61,7 +66,7 @@ type SetTokensToResponseType = {
 export class AuthController {
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
+		private readonly authQueryRepository: AuthQueryRepository,
 		private readonly authService: AuthService,
 		private readonly config: ConfigService
 	) {}
@@ -76,10 +81,8 @@ export class AuthController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToRegistrationEmailResending()
 	@Post("registration-email-resend")
-	public async registrationEmailResen(
-		@Body() { email, code }: ResendEmailCodeDto
-	): Promise<void> {
-		this.commandBus.execute(new ResendEmailCodeCommand({ email, code }))
+	public async registrationEmailResen(@Body() dto: ResendEmailCodeDto): Promise<void> {
+		this.commandBus.execute(new ResendEmailCodeCommand(dto))
 	}
 
 	@HttpCode(HttpStatus.OK)
@@ -95,17 +98,15 @@ export class AuthController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToPasswordRecovery()
 	@Post("password-recovery")
-	public async userCreateNewPass(@Body() { email }: ResendEmailCodeDto): Promise<void> {
-		await this.commandBus.execute(new PasswordRecoveryCommand({ email }))
+	public async passwordRecovery(@Body() dto: PasswordRecoveryDto): Promise<void> {
+		await this.commandBus.execute(new PasswordRecoveryCommand(dto))
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@SwaggerToPasswordEmailResending()
 	@Post("password-recovery-resend")
-	public async passwordEmailResending(
-		@Body() { code }: PasswordRecoveryResendDto
-	): Promise<void> {
-		await this.commandBus.execute(new PasswordRecoveryResendCommand({ code }))
+	public async passwordEmailResending(@Body() dto: PasswordRecoveryResendDto): Promise<void> {
+		await this.commandBus.execute(new PasswordRecoveryResendCommand(dto))
 	}
 
 	@HttpCode(HttpStatus.OK)
@@ -181,7 +182,7 @@ export class AuthController {
 	@SwaggerToMeInfo()
 	@Get("me")
 	public async meInfo(@JwtPayloadDecorator() { userID }: JwtAccessPayload): Promise<MeInfoType> {
-		return this.queryBus.execute(new MeInfoQuery({ userID }))
+		return this.authQueryRepository.meInfo({ userID })
 	}
 
 	@HttpCode(HttpStatus.NO_CONTENT)
@@ -217,8 +218,9 @@ export class AuthController {
 		@Ip() userIP: string,
 		@UserAgentDecorator() userAgent: string,
 		@Res() res: Response
-	): Promise<void> {
+	): Promise<any> {
 		console.log(dto)
+		return dto
 		// const tokens: TokensObjectType = await this.authService.githubRegister()
 		// return this.setTokensToResponseGoogle({ tokens, res })
 	}

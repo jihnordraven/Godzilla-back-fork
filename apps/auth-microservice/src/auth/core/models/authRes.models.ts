@@ -3,7 +3,7 @@ export type LoginResType = {
 }
 
 export type MeInfoType = {
-	userId: string
+	userID: string
 	username: string
 	email: string
 }

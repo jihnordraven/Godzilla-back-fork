@@ -1,11 +1,12 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { IsNotEmpty, IsOptional, IsString, IsUUID, Matches } from "class-validator"
+import { IsOptional, IsString, IsUUID, Matches } from "class-validator"
+import { emailPattern } from "libs/common/patterns"
 import { TrimDecorator } from "libs/helpers"
 
 export class ResendEmailCodeDto {
 	@TrimDecorator()
 	@IsString()
-	@Matches(/^[A-Za-z\d+_.-]+@([\w-]+.)+[A-Za-z]{2,}(?:[\w-]+)*$/)
+	@Matches(emailPattern())
 	@IsOptional()
 	@ApiProperty({
 		description: "User email",

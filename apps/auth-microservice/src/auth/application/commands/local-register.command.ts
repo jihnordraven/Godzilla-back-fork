@@ -1,9 +1,9 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
 import { CreateUserDto } from "../../core/dto"
-import { AuthCommandRepository, AuthQueryRepository } from "../../repositories"
+import { AuthRepository } from "../../repositories"
 import { ConfirmEmailStatusEnum, User } from "@prisma/client"
 import { MailerAdapter } from "../../../adapters/mailer.adapter"
-import { ConflictException, HttpStatus } from "@nestjs/common"
+import { HttpStatus } from "@nestjs/common"
 import { BcryptAdapter } from "apps/auth-microservice/src/adapters"
 import { HandleException } from "libs/errors-handlers"
 
@@ -14,25 +14,24 @@ export class LocalRegisterCommand {
 @CommandHandler(LocalRegisterCommand)
 export class LocalRegisterHandler implements ICommandHandler<LocalRegisterCommand> {
 	constructor(
-		protected readonly authCommandRepository: AuthCommandRepository,
-		protected readonly authQueryRepository: AuthQueryRepository,
+		protected readonly authRepository: AuthRepository,
 		protected readonly bcryptAdapter: BcryptAdapter,
 		protected readonly mailerAdapter: MailerAdapter
 	) {}
 
-	async execute({
+	public async execute({
 		createUser: { email, username, password }
 	}: LocalRegisterCommand): Promise<void | string> {
-		const isUser: User | null = await this.authQueryRepository.findUniqueUserByEmail({ email })
+		const isUser: User | null = await this.authRepository.findUniqueUserByEmail({ email })
 
 		if (isUser && isUser.isConfirmed !== ConfirmEmailStatusEnum.CONFIRMED) {
-			const code: string = await this.authCommandRepository.createEmailCode({
+			const code: string = await this.authRepository.createEmailCode({
 				userID: isUser.id
 			})
 			await this.mailerAdapter.sendConfirmCode({ email, code })
 			return null
 		} else {
-			const isEmail: boolean = await this.authQueryRepository.checkIsUniqueEmail({ email })
+			const isEmail: boolean = await this.authRepository.checkIsUniqueEmail({ email })
 			if (isEmail)
 				HandleException({
 					message: "User with this email is already registered",
@@ -41,7 +40,7 @@ export class LocalRegisterHandler implements ICommandHandler<LocalRegisterComman
 					statusCode: HttpStatus.CONFLICT
 				})
 
-			const isUsername: boolean = await this.authQueryRepository.checkIsUniqueUsername({
+			const isUsername: boolean = await this.authRepository.checkIsUniqueUsername({
 				username
 			})
 			if (isUsername)
@@ -54,13 +53,13 @@ export class LocalRegisterHandler implements ICommandHandler<LocalRegisterComman
 
 			const hashPassword: string = await this.bcryptAdapter.hash({ password })
 
-			const user: User = await this.authCommandRepository.localRegister({
+			const user: User = await this.authRepository.localRegister({
 				email,
 				username,
 				hashPassword
 			})
 
-			const code: string = await this.authCommandRepository.createEmailCode({
+			const code: string = await this.authRepository.createEmailCode({
 				userID: user.id
 			})
 

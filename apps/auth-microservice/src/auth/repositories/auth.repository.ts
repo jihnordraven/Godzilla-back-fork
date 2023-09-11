@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from "@nestjs/common"
+import { Injectable, InternalServerErrorException, Logger, NotFoundException } from "@nestjs/common"
 import { PrismaService } from "../../prisma/prisma.service"
 import {
 	AuthObjectType,
@@ -12,10 +12,10 @@ import { v4 } from "uuid"
 import { add } from "date-fns"
 
 @Injectable()
-export class AuthCommandRepository {
-	private readonly logger: Logger = new Logger(AuthCommandRepository.name)
+export class AuthRepository {
+	private readonly logger: Logger = new Logger(AuthRepository.name)
 
-	constructor(protected prisma: PrismaService) {}
+	constructor(protected readonly prisma: PrismaService) {}
 
 	async localRegister(data: LocalRegisterType): Promise<User> {
 		const user: User | void = await this.prisma.user
@@ -128,5 +128,51 @@ export class AuthCommandRepository {
 		} else {
 			throw new InternalServerErrorException("Unable to create google profile")
 		}
+	}
+
+	public async checkIsUniqueUsername({ username }: { username: string }): Promise<boolean> {
+		return Boolean(await this.prisma.user.findUnique({ where: { username } }))
+	}
+
+	public async checkIsUniqueEmail({ email }: { email: string }): Promise<boolean> {
+		return Boolean(await this.prisma.user.findUnique({ where: { email } }))
+	}
+
+	async findUniqueUserByID({ userID }: { userID: string }): Promise<User | null> {
+		return this.prisma.user.findUnique({ where: { id: userID } })
+	}
+
+	async findUniqueUserByEmail({ email }: { email: string }): Promise<User | null> {
+		return this.prisma.user.findUnique({
+			where: { email }
+		})
+	}
+
+	async findUniqueEmailCodeByCode({ code }: { code: string }): Promise<EmailCode | null> {
+		const emailCode: EmailCode | null = await this.prisma.emailCode.findUnique({
+			where: { code }
+		})
+		if (!emailCode) throw new NotFoundException("Code not found")
+		return emailCode
+	}
+
+	async findUniqueSessionByID({ sessionID }: { sessionID: string }): Promise<Sessions | null> {
+		return this.prisma.sessions.findUnique({ where: { id: sessionID } })
+	}
+
+	public async findUniqueGoogleProfileByProviderID({
+		providerID
+	}: {
+		providerID: string
+	}): Promise<GoogleProfile | null> {
+		return this.prisma.googleProfile.findUnique({ where: { providerID } })
+	}
+
+	public async findUniqueGoogleProfileByUserID({
+		userID
+	}: {
+		userID: string
+	}): Promise<GoogleProfile | null> {
+		return this.prisma.googleProfile.findUnique({ where: { userID } })
 	}
 }

@@ -12,9 +12,8 @@ import { PrismaModule } from "../prisma/prisma.module"
 import { PassportModule } from "@nestjs/passport"
 import { BcryptAdapter, MailerAdapter } from "../adapters"
 import { JwtModule } from "@nestjs/jwt"
-import { AuthCommandRepository, AuthQueryRepository } from "./repositories"
-import { AUTH_QUERY_HANDLERS } from "./application/queries"
 import { AUTH_COMMAND_HANDLERS } from "./application/commands"
+import { AuthQueryRepository, AuthRepository } from "./repositories"
 
 const validators = [
 	CheckedEmailToBase,
@@ -32,12 +31,11 @@ const modules = [CqrsModule, PrismaModule, PassportModule, JwtModule]
 	controllers: [AuthController],
 	providers: [
 		AuthService,
-		AuthCommandRepository,
+		AuthRepository,
 		AuthQueryRepository,
 		...validators,
 		...adapters,
-		...AUTH_COMMAND_HANDLERS,
-		...AUTH_QUERY_HANDLERS
+		...AUTH_COMMAND_HANDLERS
 	],
 	exports: [AuthService]
 })

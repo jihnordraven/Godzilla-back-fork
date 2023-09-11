@@ -27,10 +27,8 @@ export const AUTH_COMMAND_HANDLERS = [
 	ResendEmailCodeHandler,
 	PasswordRecoveryHandler,
 	NewPasswordHandler,
-	NewPasswordHandler,
 	PasswordRecoveryResendHandler,
 	LogoutHandler,
 	GoogleRegisterHandler,
-	ConfirmEmailHandler,
 	ConfirmPasswordRecoveryHandler
 ]

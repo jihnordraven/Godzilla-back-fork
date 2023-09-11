@@ -4,7 +4,7 @@ import { MeInfoType } from "../../../apps/auth-microservice/src/auth/core/models
 
 class MeInfoDto implements MeInfoType {
 	@ApiProperty()
-	userId: string
+	userID: string
 
 	@ApiProperty()
 	username: string

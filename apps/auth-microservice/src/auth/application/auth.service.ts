@@ -1,10 +1,5 @@
-import {
-	BadRequestException,
-	ForbiddenException,
-	Injectable,
-	UnauthorizedException
-} from "@nestjs/common"
-import { AuthCommandRepository, AuthQueryRepository } from "../repositories"
+import { ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common"
+import { AuthRepository } from "../repositories"
 import { JwtAccessPayload } from "../../../../../libs/helpers"
 import { AuthObjectType, TokensObjectType } from "../core/models"
 import { CommandBus } from "@nestjs/cqrs"
@@ -16,14 +11,13 @@ import { IGoogleUser } from "../protection/strategies"
 @Injectable()
 export class AuthService {
 	constructor(
-		protected readonly authRepository: AuthCommandRepository,
-		protected readonly authQueryRepository: AuthQueryRepository,
+		protected readonly authRepository: AuthRepository,
 		protected readonly commandBus: CommandBus,
 		protected readonly bcrypt: BcryptAdapter
 	) {}
 
 	async validateLogin(email: string, password: string): Promise<JwtAccessPayload | null> {
-		const user: User | null = await this.authQueryRepository.findUniqueUserByEmail({ email })
+		const user: User | null = await this.authRepository.findUniqueUserByEmail({ email })
 		if (!user) {
 			throw new UnauthorizedException("Invalid login or password")
 		}
@@ -60,9 +54,9 @@ export class AuthService {
 			return false
 		}
 
-		const activeSession: Sessions | null = await this.authQueryRepository.findUniqueSessionByID(
-			{ sessionID }
-		)
+		const activeSession: Sessions | null = await this.authRepository.findUniqueSessionByID({
+			sessionID
+		})
 		if (!activeSession) {
 			return false
 		}

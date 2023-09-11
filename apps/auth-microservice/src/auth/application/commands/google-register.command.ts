@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
 import { IGoogleUser } from "../../protection/strategies"
-import { AuthCommandRepository } from "../../repositories/auth-command.repository"
+import { AuthRepository } from "../../repositories/auth.repository"
 import { GoogleProfile, User } from "@prisma/client"
 import { CreateGoogleProfileType } from "../../core/models"
 import { AuthQueryRepository } from "../../repositories"
@@ -12,11 +12,11 @@ export class GoogleRegisterCommand {
 @CommandHandler(GoogleRegisterCommand)
 export class GoogleRegisterHandler implements ICommandHandler<GoogleRegisterCommand> {
 	constructor(
-		protected readonly authRepository: AuthCommandRepository,
+		protected readonly authRepository: AuthRepository,
 		private readonly authQueryRepository: AuthQueryRepository
 	) {}
 
-	async execute({ dto }: GoogleRegisterCommand): Promise<GoogleProfile> {
+	public async execute({ dto }: GoogleRegisterCommand): Promise<GoogleProfile> {
 		// helpers
 		const createGoogleProfileData = ({
 			userID,
@@ -36,19 +36,19 @@ export class GoogleRegisterHandler implements ICommandHandler<GoogleRegisterComm
 		}
 		// helpers
 		const googleProfile: GoogleProfile | null =
-			await this.authQueryRepository.findUniqueGoogleProfileByProviderID({
+			await this.authRepository.findUniqueGoogleProfileByProviderID({
 				providerID: dto.providerID
 			})
 
 		if (googleProfile) return googleProfile
 
-		const user: User | null = await this.authQueryRepository.findUniqueUserByEmail({
+		const user: User | null = await this.authRepository.findUniqueUserByEmail({
 			email: dto.email
 		})
 
 		if (user) {
 			const googleProfile: GoogleProfile | null =
-				await this.authQueryRepository.findUniqueGoogleProfileByUserID({ userID: user.id })
+				await this.authRepository.findUniqueGoogleProfileByUserID({ userID: user.id })
 			if (googleProfile) return googleProfile
 			const googleProfileData: CreateGoogleProfileType = createGoogleProfileData({
 				userID: user.id,
@@ -56,14 +56,13 @@ export class GoogleRegisterHandler implements ICommandHandler<GoogleRegisterComm
 			})
 			return this.authRepository.createGoogleProfile(googleProfileData)
 		}
-
 		if (dto.username) {
 			let isUsernameTaken: boolean
 			let uniqueUsername: string = dto.username
 			let suffix: number = 1
 			// check is username unique
 			do {
-				isUsernameTaken = await this.authQueryRepository.checkIsUniqueUsername({
+				isUsernameTaken = await this.authRepository.checkIsUniqueUsername({
 					username: uniqueUsername
 				})
 				if (isUsernameTaken) {
@@ -87,7 +86,7 @@ export class GoogleRegisterHandler implements ICommandHandler<GoogleRegisterComm
 			let suffix: number = 1
 			// check is username unique
 			do {
-				isUsernameTaken = await this.authQueryRepository.checkIsUniqueUsername({
+				isUsernameTaken = await this.authRepository.checkIsUniqueUsername({
 					username: uniqueUsername
 				})
 				if (isUsernameTaken) {
@@ -107,7 +106,6 @@ export class GoogleRegisterHandler implements ICommandHandler<GoogleRegisterComm
 			return this.authRepository.createGoogleProfile(googleProfileData)
 		}
 	}
-	// 	const isUser: User | null = await this.authRepository.findUserToEmail({
 	// 		email: dto.email
 	// 	})
 	// 	// user doesn\t exist

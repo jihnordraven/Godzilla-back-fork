@@ -3,6 +3,7 @@ import { IsEmail, IsNotEmpty, IsString, Length, Matches, Validate } from "class-
 import { ApiProperty } from "@nestjs/swagger"
 import { CheckedUniqueEmail, CheckedUniqueUsername } from "../../class-validators"
 import { CreateUserType } from "../models"
+import { emailPattern, passwordPattern } from "libs/common/patterns"
 
 export class CreateUserDto implements CreateUserType {
 	//@Validate(CheckedUniqueUsername)
@@ -24,7 +25,7 @@ export class CreateUserDto implements CreateUserType {
 	//@Validate(CheckedUniqueEmail)
 	@TrimDecorator()
 	@IsString()
-	@Matches(/^[A-Za-z\d+_.-]+@([\w-]+.)+[A-Za-z]{2,}(?:[\w-]+)*$/)
+	@Matches(emailPattern())
 	@IsNotEmpty()
 	@ApiProperty({
 		description: "User email",
@@ -35,9 +36,7 @@ export class CreateUserDto implements CreateUserType {
 	readonly email: string
 
 	@TrimDecorator()
-	@Matches(
-		/^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~\\\/])[A-Za-z0-9!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~\\\/]+$/
-	)
+	@Matches(passwordPattern())
 	@IsString()
 	@Length(6, 20)
 	@IsNotEmpty()

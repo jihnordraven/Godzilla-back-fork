@@ -2,13 +2,12 @@ import { IsNotEmpty, IsString, IsUUID, Length, Matches, Validate } from "class-v
 import { TrimDecorator } from "../../../../../../libs/helpers"
 import { ApiProperty } from "@nestjs/swagger"
 import { NewPassUpdateType } from "../models"
+import { passwordPattern } from "libs/common/patterns"
 
 export class NewPassUpdateDto implements NewPassUpdateType {
 	@TrimDecorator()
 	@Length(6, 20)
-	@Matches(
-		/^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~])[A-Za-z0-9!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~]+$/
-	)
+	@Matches(passwordPattern())
 	@IsString()
 	@IsNotEmpty()
 	@ApiProperty({
