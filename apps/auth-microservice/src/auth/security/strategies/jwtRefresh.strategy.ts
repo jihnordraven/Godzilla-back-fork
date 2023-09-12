@@ -24,7 +24,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, "refreshToken
 			payload.iat
 		)
 		if (!validateSession) {
-			throw new UnauthorizedException("Unable to logout")
+			throw new UnauthorizedException()
 		}
 		return { userID: payload.userID, sessionID: payload.sessionID }
 	}

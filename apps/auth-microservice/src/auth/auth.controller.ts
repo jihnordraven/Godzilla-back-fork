@@ -9,18 +9,19 @@ import {
 	Post,
 	Res,
 	UseGuards,
-	Query
+	Query,
+	Req
 } from "@nestjs/common"
 import { ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger"
 import { CommandBus } from "@nestjs/cqrs"
-import { Response } from "express"
+import { Request, Response } from "express"
 import {
 	CreateUserDto,
 	NewPassUpdateDto,
 	PasswordRecoveryDto,
 	PasswordRecoveryResendDto
 } from "./core/dto"
-import { GithubGuard, JwtAccessGuard, JwtRefreshGuard, LocalAuthGuard } from "./protection/guards"
+import { GithubGuard, JwtAccessGuard, JwtRefreshGuard, LocalAuthGuard } from "./security/guards"
 import {
 	SwaggerToAuthorization,
 	SwaggerToGoogleOAuth,
@@ -45,16 +46,19 @@ import {
 	PasswordRecoveryResendCommand,
 	PasswordRecoveryConfirmCommand,
 	ConfirmEmailCommand
+	// GoogleRegisterCommand
 } from "./application/commands"
 import { AuthService } from "./application/auth.service"
-import { GoogleGuard } from "./protection/guards/google.guard"
-import { IGoogleUser } from "./protection/strategies"
-import { GooglePayloadDecorator, UserAgentDecorator } from "../../../../libs/common/decorators"
+import { GoogleGuard } from "./security/guards/google.guard"
+import { UserAgentDecorator } from "../../../../libs/common/decorators"
 import { TokensEnum } from "../../../../libs/models/enums"
 import { ConfigService } from "@nestjs/config"
-import { GithubPayloadDecorator } from "libs/common/decorators/github-payload.decorator"
 import { ResendEmailCodeDto } from "./core/dto/resend-email-code.dto"
 import { AuthQueryRepository } from "./repositories"
+import { CONFIG } from "../config"
+import { GoogleRegisterDto } from "./core/dto/google-register.dto"
+import { GithubRegisterDto } from "./core/dto/github-register.dto"
+import { GoogleRegisterCommand } from "./application/commands/google-register.command"
 
 type SetTokensToResponseType = {
 	readonly tokens: TokensObjectType
@@ -135,7 +139,7 @@ export class AuthController {
 		@Ip() userIP: string,
 		@UserAgentDecorator() userAgent: string,
 		@Res({ passthrough: true }) res: Response
-	): Promise<LoginResType> {
+	): Promise<void> {
 		const tokens: TokensObjectType = await this.commandBus.execute(
 			new LoginCommand({ userIP, userAgent, userID: payload.userID })
 		)
@@ -151,7 +155,7 @@ export class AuthController {
 		@Ip() userIP: string,
 		@UserAgentDecorator() userAgent: string,
 		@Res({ passthrough: true }) res: Response
-	): Promise<LoginResType> {
+	): Promise<void> {
 		const authObjectDTO: AuthObjectType = {
 			userIP,
 			userAgent,
@@ -194,17 +198,29 @@ export class AuthController {
 	@HttpCode(HttpStatus.OK)
 	@SwaggerToGoogleOAuth()
 	@Get("google/callback")
-	public async googleCallback(
-		@GooglePayloadDecorator() googleUser: IGoogleUser,
-		@Ip() userIP: string,
+	public async googleCallback(@Req() req: Request, @Res() res: Response): Promise<any> {
+		// @ts-ignore
+		const accessToken: string = req.user?.accessToken
+		console.log(accessToken)
+		res.redirect(
+			`${CONFIG.FRONTEND_HOST}/auth/google?${TokensEnum.ACCESS_TOKEN}=${accessToken}`
+		)
+	}
+
+	@Post("google/register")
+	public async googleRegister(
+		@Body() dto: GoogleRegisterDto,
 		@UserAgentDecorator() userAgent: string,
+		@Ip() userIP: string,
 		@Res() res: Response
-	): Promise<LoginResType> {
-		const tokens: TokensObjectType = await this.authService.googleRegister(googleUser, {
-			userIP,
-			userAgent
+	): Promise<void> {
+		console.log(dto)
+		const tokens: TokensObjectType = await this.authService.googleRegister(dto, {
+			userAgent,
+			userIP
 		})
-		return this.setTokensToResponseGoogle({ tokens, res })
+		console.log(tokens)
+		return await this.setTokensToResponse({ tokens, res })
 	}
 
 	@Get("github")
@@ -213,39 +229,35 @@ export class AuthController {
 
 	@Get("github/callback")
 	@UseGuards(GithubGuard)
-	public async githubCallback(
-		@GithubPayloadDecorator() dto: any,
-		@Ip() userIP: string,
+	public async githubCallback(@Req() req: Request, @Res() res: Response): Promise<any> {
+		// @ts-ignore
+		const accessToken: string = req.user.accessToken
+		console.log(accessToken)
+		res.redirect(
+			`${CONFIG.FRONTEND_HOST}/auth/github?${TokensEnum.ACCESS_TOKEN}=${accessToken}`
+		)
+	}
+
+	@Post("github/register")
+	public async githubRegister(
+		@Body() dto: GithubRegisterDto,
 		@UserAgentDecorator() userAgent: string,
+		@Ip() userIP: string,
 		@Res() res: Response
-	): Promise<any> {
-		console.log(dto)
-		return dto
-		// const tokens: TokensObjectType = await this.authService.githubRegister()
-		// return this.setTokensToResponseGoogle({ tokens, res })
+	): Promise<void> {
+		const tokens: TokensObjectType = await this.authService.githubRegister(dto, {
+			userAgent,
+			userIP
+		})
+		return this.setTokensToResponse({ tokens, res })
 	}
 
 	// private helpers
-	private async setTokensToResponse({
-		tokens,
-		res
-	}: SetTokensToResponseType): Promise<LoginResType> {
+	private async setTokensToResponse({ tokens, res }: SetTokensToResponseType): Promise<void> {
 		res.cookie(TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
 			httpOnly: true,
 			secure: true
 		})
-		return { accessToken: tokens.accessToken }
-	}
-
-	private async setTokensToResponseGoogle({
-		tokens,
-		res
-	}: SetTokensToResponseType): Promise<LoginResType> {
-		res.cookie(TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
-			httpOnly: true,
-			secure: true
-		})
-		res.redirect(this.config.get<string>("FRONTEND_HOST"))
-		return { accessToken: tokens.accessToken }
+		res.json({ accessToken: tokens.accessToken })
 	}
 }

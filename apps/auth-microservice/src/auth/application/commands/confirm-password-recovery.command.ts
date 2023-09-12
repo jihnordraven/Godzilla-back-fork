@@ -4,7 +4,7 @@ import { AuthRepository } from "../../repositories/auth.repository"
 import { ConfigService } from "@nestjs/config"
 import { BadRequestException } from "@nestjs/common"
 import { AuthQueryRepository } from "../../repositories"
-import { CONFIG } from "apps/auth-microservice/src/config"
+import { CONFIG } from "../../../config"
 import { PasswordRecoveryConfirmDto } from "../../core/dto"
 
 export class PasswordRecoveryConfirmCommand {
@@ -30,7 +30,7 @@ export class ConfirmPasswordRecoveryHandler
 
 		if (emailCode.isUsed) {
 			await this.authRepository.deactivateOneEmailCode({ code })
-			res.redirect(`${this.FRONTEND_HOST}/recovery`)
+			res.redirect(`${this.FRONTEND_HOST}/auth/expired/${emailCode.code}`)
 			return null
 		}
 

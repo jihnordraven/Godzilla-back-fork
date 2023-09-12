@@ -64,7 +64,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MailerAdapter = void 0;
 const nodemailer_1 = __webpack_require__(/*! nodemailer */ "nodemailer");
 const config_1 = __webpack_require__(/*! ../config */ "./apps/auth-microservice/src/config/index.ts");
-const templates_1 = __webpack_require__(/*! libs/static/templates */ "./libs/static/templates/index.ts");
+const templates_1 = __webpack_require__(/*! ../../../../libs/static/templates */ "./libs/static/templates/index.ts");
 class MailerAdapter {
     async options(options) {
         const transport = (0, nodemailer_1.createTransport)({
@@ -182,7 +182,7 @@ const app_service_1 = __webpack_require__(/*! ./app.service */ "./apps/auth-micr
 const auth_module_1 = __webpack_require__(/*! ./auth/auth.module */ "./apps/auth-microservice/src/auth/auth.module.ts");
 const prisma_module_1 = __webpack_require__(/*! ./prisma/prisma.module */ "./apps/auth-microservice/src/prisma/prisma.module.ts");
 const config_1 = __webpack_require__(/*! ./config/config */ "./apps/auth-microservice/src/config/config.ts");
-const strategies_1 = __webpack_require__(/*! ./auth/protection/strategies */ "./apps/auth-microservice/src/auth/protection/strategies/index.ts");
+const strategies_1 = __webpack_require__(/*! ./auth/security/strategies */ "./apps/auth-microservice/src/auth/security/strategies/index.ts");
 let AppModule = exports.AppModule = class AppModule {
 };
 exports.AppModule = AppModule = __decorate([
@@ -273,6 +273,7 @@ const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const commands_1 = __webpack_require__(/*! ./commands */ "./apps/auth-microservice/src/auth/application/commands/index.ts");
 const adapters_1 = __webpack_require__(/*! ../../adapters */ "./apps/auth-microservice/src/adapters/index.ts");
 const client_1 = __webpack_require__(/*! @prisma/client */ "@prisma/client");
+const google_register_command_1 = __webpack_require__(/*! ./commands/google-register.command */ "./apps/auth-microservice/src/auth/application/commands/google-register.command.ts");
 let AuthService = exports.AuthService = class AuthService {
     constructor(authRepository, commandBus, bcrypt) {
         this.authRepository = authRepository;
@@ -335,9 +336,13 @@ let AuthService = exports.AuthService = class AuthService {
         console.log(email);
         return false;
     }
-    async googleRegister(dto, { userIP, userAgent }) {
-        const googleProfile = await this.commandBus.execute(new commands_1.GoogleRegisterCommand(dto));
-        return this.commandBus.execute(new commands_1.LoginCommand({ userIP, userAgent, userID: googleProfile.userID }));
+    async googleRegister(dto, { userAgent, userIP }) {
+        const googleProfile = await this.commandBus.execute(new google_register_command_1.GoogleRegisterCommand(dto));
+        return this.commandBus.execute(new commands_1.LoginCommand({ userID: googleProfile.userID, userAgent, userIP }));
+    }
+    async githubRegister(dto, { userAgent, userIP }) {
+        const githubProfile = await this.commandBus.execute(new commands_1.GithubRegisterCommand(dto));
+        return this.commandBus.execute(new commands_1.LoginCommand({ userID: githubProfile.userID, userAgent, userIP }));
     }
 };
 exports.AuthService = AuthService = __decorate([
@@ -443,7 +448,7 @@ const auth_repository_1 = __webpack_require__(/*! ../../repositories/auth.reposi
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const repositories_1 = __webpack_require__(/*! ../../repositories */ "./apps/auth-microservice/src/auth/repositories/index.ts");
-const config_2 = __webpack_require__(/*! apps/auth-microservice/src/config */ "./apps/auth-microservice/src/config/index.ts");
+const config_2 = __webpack_require__(/*! ../../../config */ "./apps/auth-microservice/src/config/index.ts");
 class PasswordRecoveryConfirmCommand {
     constructor(dto) {
         this.dto = dto;
@@ -463,7 +468,7 @@ let ConfirmPasswordRecoveryHandler = exports.ConfirmPasswordRecoveryHandler = cl
         });
         if (emailCode.isUsed) {
             await this.authRepository.deactivateOneEmailCode({ code });
-            res.redirect(`${this.FRONTEND_HOST}/recovery`);
+            res.redirect(`${this.FRONTEND_HOST}/auth/expired/${emailCode.code}`);
             return null;
         }
         const isCodeExpired = new Date(emailCode.expiresIn) <= new Date();
@@ -485,6 +490,97 @@ exports.ConfirmPasswordRecoveryHandler = ConfirmPasswordRecoveryHandler = __deco
 
 /***/ }),
 
+/***/ "./apps/auth-microservice/src/auth/application/commands/github-register.command.ts":
+/*!*****************************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/application/commands/github-register.command.ts ***!
+  \*****************************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GithubRegisterHandler = exports.GithubRegisterCommand = void 0;
+const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
+const repositories_1 = __webpack_require__(/*! ../../repositories */ "./apps/auth-microservice/src/auth/repositories/index.ts");
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const auth_service_1 = __webpack_require__(/*! ../auth.service */ "./apps/auth-microservice/src/auth/application/auth.service.ts");
+class GithubRegisterCommand {
+    constructor(dto) {
+        this.dto = dto;
+    }
+}
+exports.GithubRegisterCommand = GithubRegisterCommand;
+let GithubRegisterHandler = exports.GithubRegisterHandler = class GithubRegisterHandler {
+    constructor(authRepository, authService) {
+        this.authRepository = authRepository;
+        this.authService = authService;
+    }
+    async execute({ dto }) {
+        if (!dto.email)
+            throw new common_1.ForbiddenException("Unable to register with github without email");
+        const createGithubProfileData = ({ userID, username }) => {
+            return {
+                node_id: dto.node_id,
+                email: dto.email,
+                avatar_url: dto.avatar_url,
+                location: dto.location,
+                name: dto.name,
+                login: dto.login,
+                username,
+                userID
+            };
+        };
+        const githubProfile = await this.authRepository.findUniqueGithubProfileByProviderID({
+            providerID: dto.node_id
+        });
+        if (githubProfile)
+            return githubProfile;
+        const user = await this.authRepository.findUniqueUserByEmail({
+            email: dto.email
+        });
+        const uniqueUsername = dto.login
+            ? await this.authRepository.genUniqueUsername({ pref: `${dto.login}-` })
+            : await this.authRepository.genUniqueUsername({ pref: "github-" });
+        if (user) {
+            const githubProfile = await this.authRepository.findUniqueGithubProfileByUserID({ userID: user.id });
+            if (githubProfile)
+                return githubProfile;
+            const githubProfileData = createGithubProfileData({
+                userID: user.id,
+                username: uniqueUsername
+            });
+            return this.authRepository.createGithubProfile(githubProfileData);
+        }
+        else {
+            const newUser = await this.authRepository.localRegister({
+                email: dto.email,
+                username: uniqueUsername
+            });
+            const githubProfileData = createGithubProfileData({
+                userID: newUser.id,
+                username: uniqueUsername
+            });
+            return this.authRepository.createGithubProfile(githubProfileData);
+        }
+    }
+};
+exports.GithubRegisterHandler = GithubRegisterHandler = __decorate([
+    (0, cqrs_1.CommandHandler)(GithubRegisterCommand),
+    __metadata("design:paramtypes", [typeof (_a = typeof repositories_1.AuthRepository !== "undefined" && repositories_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _b : Object])
+], GithubRegisterHandler);
+
+
+/***/ }),
+
 /***/ "./apps/auth-microservice/src/auth/application/commands/google-register.command.ts":
 /*!*****************************************************************************************!*\
   !*** ./apps/auth-microservice/src/auth/application/commands/google-register.command.ts ***!
@@ -501,12 +597,11 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b;
+var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoogleRegisterHandler = exports.GoogleRegisterCommand = void 0;
 const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const auth_repository_1 = __webpack_require__(/*! ../../repositories/auth.repository */ "./apps/auth-microservice/src/auth/repositories/auth.repository.ts");
-const repositories_1 = __webpack_require__(/*! ../../repositories */ "./apps/auth-microservice/src/auth/repositories/index.ts");
 class GoogleRegisterCommand {
     constructor(dto) {
         this.dto = dto;
@@ -514,82 +609,50 @@ class GoogleRegisterCommand {
 }
 exports.GoogleRegisterCommand = GoogleRegisterCommand;
 let GoogleRegisterHandler = exports.GoogleRegisterHandler = class GoogleRegisterHandler {
-    constructor(authRepository, authQueryRepository) {
+    constructor(authRepository) {
         this.authRepository = authRepository;
-        this.authQueryRepository = authQueryRepository;
     }
     async execute({ dto }) {
-        const createGoogleProfileData = ({ userID, username }) => {
+        const createGoogleProfileData = ({ userID }) => {
             return {
-                providerID: dto.providerID,
+                providerID: dto.sub,
                 email: dto.email,
-                username,
-                displayName: dto.displayName,
-                provider: dto.provider,
+                name: dto.name,
+                givenName: dto.given_name,
+                familyName: dto.family_name,
+                picture: dto.picture,
+                isConfirmed: dto.email_verified,
+                locale: dto.locale,
                 userID
             };
         };
         const googleProfile = await this.authRepository.findUniqueGoogleProfileByProviderID({
-            providerID: dto.providerID
+            providerID: dto.sub
         });
         if (googleProfile)
             return googleProfile;
         const user = await this.authRepository.findUniqueUserByEmail({
             email: dto.email
         });
+        const uniqueUsername = await this.authRepository.genUniqueUsername({
+            pref: "google-"
+        });
         if (user) {
             const googleProfile = await this.authRepository.findUniqueGoogleProfileByUserID({ userID: user.id });
             if (googleProfile)
                 return googleProfile;
             const googleProfileData = createGoogleProfileData({
-                userID: user.id,
-                username: user.username
-            });
-            return this.authRepository.createGoogleProfile(googleProfileData);
-        }
-        if (dto.username) {
-            let isUsernameTaken;
-            let uniqueUsername = dto.username;
-            let suffix = 1;
-            do {
-                isUsernameTaken = await this.authRepository.checkIsUniqueUsername({
-                    username: uniqueUsername
-                });
-                if (isUsernameTaken) {
-                    uniqueUsername = `${dto.username}_${suffix}`;
-                    suffix++;
-                }
-            } while (isUsernameTaken);
-            const user = await this.authRepository.localRegister({
-                email: dto.email,
-                username: uniqueUsername
-            });
-            const googleProfileData = createGoogleProfileData({
-                userID: user.id,
-                username: uniqueUsername
+                userID: user.id
             });
             return this.authRepository.createGoogleProfile(googleProfileData);
         }
         else {
-            let isUsernameTaken;
-            let uniqueUsername = "google-client_1";
-            let suffix = 1;
-            do {
-                isUsernameTaken = await this.authRepository.checkIsUniqueUsername({
-                    username: uniqueUsername
-                });
-                if (isUsernameTaken) {
-                    uniqueUsername = `google-client_${suffix}`;
-                    suffix++;
-                }
-            } while (isUsernameTaken);
-            const user = await this.authRepository.localRegister({
+            const newUser = await this.authRepository.localRegister({
                 email: dto.email,
                 username: uniqueUsername
             });
             const googleProfileData = createGoogleProfileData({
-                userID: user.id,
-                username: uniqueUsername
+                userID: newUser.id
             });
             return this.authRepository.createGoogleProfile(googleProfileData);
         }
@@ -597,7 +660,7 @@ let GoogleRegisterHandler = exports.GoogleRegisterHandler = class GoogleRegister
 };
 exports.GoogleRegisterHandler = GoogleRegisterHandler = __decorate([
     (0, cqrs_1.CommandHandler)(GoogleRegisterCommand),
-    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object, typeof (_b = typeof repositories_1.AuthQueryRepository !== "undefined" && repositories_1.AuthQueryRepository) === "function" ? _b : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_repository_1.AuthRepository !== "undefined" && auth_repository_1.AuthRepository) === "function" ? _a : Object])
 ], GoogleRegisterHandler);
 
 
@@ -628,6 +691,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AUTH_COMMAND_HANDLERS = void 0;
 const confirm_email_command_1 = __webpack_require__(/*! ./confirm-email.command */ "./apps/auth-microservice/src/auth/application/commands/confirm-email.command.ts");
 const confirm_password_recovery_command_1 = __webpack_require__(/*! ./confirm-password-recovery.command */ "./apps/auth-microservice/src/auth/application/commands/confirm-password-recovery.command.ts");
+const github_register_command_1 = __webpack_require__(/*! ./github-register.command */ "./apps/auth-microservice/src/auth/application/commands/github-register.command.ts");
 const google_register_command_1 = __webpack_require__(/*! ./google-register.command */ "./apps/auth-microservice/src/auth/application/commands/google-register.command.ts");
 const local_register_command_1 = __webpack_require__(/*! ./local-register.command */ "./apps/auth-microservice/src/auth/application/commands/local-register.command.ts");
 const login_command_1 = __webpack_require__(/*! ./login.command */ "./apps/auth-microservice/src/auth/application/commands/login.command.ts");
@@ -643,9 +707,10 @@ __exportStar(__webpack_require__(/*! ./password-recovery.command */ "./apps/auth
 __exportStar(__webpack_require__(/*! ./new-password.command */ "./apps/auth-microservice/src/auth/application/commands/new-password.command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./password-recovery-resend.command */ "./apps/auth-microservice/src/auth/application/commands/password-recovery-resend.command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./logout.command */ "./apps/auth-microservice/src/auth/application/commands/logout.command.ts"), exports);
-__exportStar(__webpack_require__(/*! ./google-register.command */ "./apps/auth-microservice/src/auth/application/commands/google-register.command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./confirm-email.command */ "./apps/auth-microservice/src/auth/application/commands/confirm-email.command.ts"), exports);
 __exportStar(__webpack_require__(/*! ./confirm-password-recovery.command */ "./apps/auth-microservice/src/auth/application/commands/confirm-password-recovery.command.ts"), exports);
+__exportStar(__webpack_require__(/*! ./google-register.command */ "./apps/auth-microservice/src/auth/application/commands/google-register.command.ts"), exports);
+__exportStar(__webpack_require__(/*! ./github-register.command */ "./apps/auth-microservice/src/auth/application/commands/github-register.command.ts"), exports);
 exports.AUTH_COMMAND_HANDLERS = [
     local_register_command_1.LocalRegisterHandler,
     login_command_1.LoginHandler,
@@ -655,8 +720,9 @@ exports.AUTH_COMMAND_HANDLERS = [
     new_password_command_1.NewPasswordHandler,
     password_recovery_resend_command_1.PasswordRecoveryResendHandler,
     logout_command_1.LogoutHandler,
+    confirm_password_recovery_command_1.ConfirmPasswordRecoveryHandler,
     google_register_command_1.GoogleRegisterHandler,
-    confirm_password_recovery_command_1.ConfirmPasswordRecoveryHandler
+    github_register_command_1.GithubRegisterHandler
 ];
 
 
@@ -722,7 +788,7 @@ let LocalRegisterHandler = exports.LocalRegisterHandler = class LocalRegisterHan
                 username
             });
             if (isUsername)
-                throw new errors_handlers_1.HandleException({
+                (0, errors_handlers_1.HandleException)({
                     message: "User with this username is already registered",
                     field: "username",
                     error: "Conflict",
@@ -904,6 +970,8 @@ let NewPasswordHandler = exports.NewPasswordHandler = class NewPasswordHandler {
         });
         if (!emailCode)
             throw new common_1.BadRequestException("Invalid code");
+        if (emailCode.isUsed)
+            throw new common_1.ForbiddenException("Code has already been used");
         const user = await this.authRepository.findUniqueUserByID({
             userID: emailCode.userID
         });
@@ -1123,7 +1191,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -1131,19 +1199,20 @@ const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const cqrs_1 = __webpack_require__(/*! @nestjs/cqrs */ "@nestjs/cqrs");
 const express_1 = __webpack_require__(/*! express */ "express");
 const dto_1 = __webpack_require__(/*! ./core/dto */ "./apps/auth-microservice/src/auth/core/dto/index.ts");
-const guards_1 = __webpack_require__(/*! ./protection/guards */ "./apps/auth-microservice/src/auth/protection/guards/index.ts");
+const guards_1 = __webpack_require__(/*! ./security/guards */ "./apps/auth-microservice/src/auth/security/guards/index.ts");
 const auth_1 = __webpack_require__(/*! ../../../../libs/swagger/auth */ "./libs/swagger/auth/index.ts");
 const helpers_1 = __webpack_require__(/*! ../../../../libs/helpers */ "./libs/helpers/index.ts");
 const commands_1 = __webpack_require__(/*! ./application/commands */ "./apps/auth-microservice/src/auth/application/commands/index.ts");
 const auth_service_1 = __webpack_require__(/*! ./application/auth.service */ "./apps/auth-microservice/src/auth/application/auth.service.ts");
-const google_guard_1 = __webpack_require__(/*! ./protection/guards/google.guard */ "./apps/auth-microservice/src/auth/protection/guards/google.guard.ts");
-const strategies_1 = __webpack_require__(/*! ./protection/strategies */ "./apps/auth-microservice/src/auth/protection/strategies/index.ts");
+const google_guard_1 = __webpack_require__(/*! ./security/guards/google.guard */ "./apps/auth-microservice/src/auth/security/guards/google.guard.ts");
 const decorators_1 = __webpack_require__(/*! ../../../../libs/common/decorators */ "./libs/common/decorators/index.ts");
 const enums_1 = __webpack_require__(/*! ../../../../libs/models/enums */ "./libs/models/enums.ts");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
-const github_payload_decorator_1 = __webpack_require__(/*! libs/common/decorators/github-payload.decorator */ "./libs/common/decorators/github-payload.decorator.ts");
 const resend_email_code_dto_1 = __webpack_require__(/*! ./core/dto/resend-email-code.dto */ "./apps/auth-microservice/src/auth/core/dto/resend-email-code.dto.ts");
 const repositories_1 = __webpack_require__(/*! ./repositories */ "./apps/auth-microservice/src/auth/repositories/index.ts");
+const config_2 = __webpack_require__(/*! ../config */ "./apps/auth-microservice/src/config/index.ts");
+const google_register_dto_1 = __webpack_require__(/*! ./core/dto/google-register.dto */ "./apps/auth-microservice/src/auth/core/dto/google-register.dto.ts");
+const github_register_dto_1 = __webpack_require__(/*! ./core/dto/github-register.dto */ "./apps/auth-microservice/src/auth/core/dto/github-register.dto.ts");
 let AuthController = exports.AuthController = class AuthController {
     constructor(commandBus, authQueryRepository, authService, config) {
         this.commandBus = commandBus;
@@ -1193,32 +1262,39 @@ let AuthController = exports.AuthController = class AuthController {
         return this.authQueryRepository.meInfo({ userID });
     }
     google() { }
-    async googleCallback(googleUser, userIP, userAgent, res) {
-        const tokens = await this.authService.googleRegister(googleUser, {
-            userIP,
-            userAgent
+    async googleCallback(req, res) {
+        const accessToken = req.user?.accessToken;
+        console.log(accessToken);
+        res.redirect(`${config_2.CONFIG.FRONTEND_HOST}/auth/google?${enums_1.TokensEnum.ACCESS_TOKEN}=${accessToken}`);
+    }
+    async googleRegister(dto, userAgent, userIP, res) {
+        console.log(dto);
+        const tokens = await this.authService.googleRegister(dto, {
+            userAgent,
+            userIP
         });
-        return this.setTokensToResponseGoogle({ tokens, res });
+        console.log(tokens);
+        return await this.setTokensToResponse({ tokens, res });
     }
     github() { }
-    async githubCallback(dto, userIP, userAgent, res) {
-        console.log(dto);
-        return dto;
+    async githubCallback(req, res) {
+        const accessToken = req.user.accessToken;
+        console.log(accessToken);
+        res.redirect(`${config_2.CONFIG.FRONTEND_HOST}/auth/github?${enums_1.TokensEnum.ACCESS_TOKEN}=${accessToken}`);
+    }
+    async githubRegister(dto, userAgent, userIP, res) {
+        const tokens = await this.authService.githubRegister(dto, {
+            userAgent,
+            userIP
+        });
+        return this.setTokensToResponse({ tokens, res });
     }
     async setTokensToResponse({ tokens, res }) {
         res.cookie(enums_1.TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
             httpOnly: true,
             secure: true
         });
-        return { accessToken: tokens.accessToken };
-    }
-    async setTokensToResponseGoogle({ tokens, res }) {
-        res.cookie(enums_1.TokensEnum.REFRESH_TOKEN, tokens.refreshToken, {
-            httpOnly: true,
-            secure: true
-        });
-        res.redirect(this.config.get("FRONTEND_HOST"));
-        return { accessToken: tokens.accessToken };
+        res.json({ accessToken: tokens.accessToken });
     }
 };
 __decorate([
@@ -1346,14 +1422,22 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, auth_1.SwaggerToGoogleOAuth)(),
     (0, common_1.Get)("google/callback"),
-    __param(0, (0, decorators_1.GooglePayloadDecorator)()),
-    __param(1, (0, common_1.Ip)()),
-    __param(2, (0, decorators_1.UserAgentDecorator)()),
-    __param(3, (0, common_1.Res)()),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_5 = typeof strategies_1.IGoogleUser !== "undefined" && strategies_1.IGoogleUser) === "function" ? _5 : Object, String, String, typeof (_6 = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _6 : Object]),
+    __metadata("design:paramtypes", [typeof (_5 = typeof express_1.Request !== "undefined" && express_1.Request) === "function" ? _5 : Object, typeof (_6 = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _6 : Object]),
     __metadata("design:returntype", typeof (_7 = typeof Promise !== "undefined" && Promise) === "function" ? _7 : Object)
 ], AuthController.prototype, "googleCallback", null);
+__decorate([
+    (0, common_1.Post)("google/register"),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, decorators_1.UserAgentDecorator)()),
+    __param(2, (0, common_1.Ip)()),
+    __param(3, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_8 = typeof google_register_dto_1.GoogleRegisterDto !== "undefined" && google_register_dto_1.GoogleRegisterDto) === "function" ? _8 : Object, String, String, typeof (_9 = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _9 : Object]),
+    __metadata("design:returntype", typeof (_10 = typeof Promise !== "undefined" && Promise) === "function" ? _10 : Object)
+], AuthController.prototype, "googleRegister", null);
 __decorate([
     (0, common_1.Get)("github"),
     (0, common_1.UseGuards)(guards_1.GithubGuard),
@@ -1364,14 +1448,22 @@ __decorate([
 __decorate([
     (0, common_1.Get)("github/callback"),
     (0, common_1.UseGuards)(guards_1.GithubGuard),
-    __param(0, (0, github_payload_decorator_1.GithubPayloadDecorator)()),
-    __param(1, (0, common_1.Ip)()),
-    __param(2, (0, decorators_1.UserAgentDecorator)()),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_11 = typeof express_1.Request !== "undefined" && express_1.Request) === "function" ? _11 : Object, typeof (_12 = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _12 : Object]),
+    __metadata("design:returntype", typeof (_13 = typeof Promise !== "undefined" && Promise) === "function" ? _13 : Object)
+], AuthController.prototype, "githubCallback", null);
+__decorate([
+    (0, common_1.Post)("github/register"),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, decorators_1.UserAgentDecorator)()),
+    __param(2, (0, common_1.Ip)()),
     __param(3, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String, typeof (_8 = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _8 : Object]),
-    __metadata("design:returntype", typeof (_9 = typeof Promise !== "undefined" && Promise) === "function" ? _9 : Object)
-], AuthController.prototype, "githubCallback", null);
+    __metadata("design:paramtypes", [typeof (_14 = typeof github_register_dto_1.GithubRegisterDto !== "undefined" && github_register_dto_1.GithubRegisterDto) === "function" ? _14 : Object, String, String, typeof (_15 = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _15 : Object]),
+    __metadata("design:returntype", typeof (_16 = typeof Promise !== "undefined" && Promise) === "function" ? _16 : Object)
+], AuthController.prototype, "githubRegister", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)("Auth"),
     (0, common_1.Controller)("auth"),
@@ -1655,7 +1747,7 @@ exports.CreateUserDto = void 0;
 const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
-const patterns_1 = __webpack_require__(/*! libs/common/patterns */ "./libs/common/patterns/index.ts");
+const patterns_1 = __webpack_require__(/*! ../../../../../../libs/common/patterns */ "./libs/common/patterns/index.ts");
 class CreateUserDto {
 }
 exports.CreateUserDto = CreateUserDto;
@@ -1704,6 +1796,30 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "password", void 0);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/core/dto/github-register.dto.ts":
+/*!*************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/core/dto/github-register.dto.ts ***!
+  \*************************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/core/dto/google-register.dto.ts":
+/*!*************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/core/dto/google-register.dto.ts ***!
+  \*************************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 
 /***/ }),
@@ -1761,7 +1877,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LogoutDto = void 0;
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const helpers_1 = __webpack_require__(/*! libs/helpers */ "./libs/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 class LogoutDto {
 }
 exports.LogoutDto = LogoutDto;
@@ -1811,7 +1927,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MeInfoDto = void 0;
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const helpers_1 = __webpack_require__(/*! libs/helpers */ "./libs/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 class MeInfoDto {
 }
 exports.MeInfoDto = MeInfoDto;
@@ -1852,7 +1968,7 @@ exports.NewPassUpdateDto = void 0;
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
 const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
-const patterns_1 = __webpack_require__(/*! libs/common/patterns */ "./libs/common/patterns/index.ts");
+const patterns_1 = __webpack_require__(/*! ../../../../../../libs/common/patterns */ "./libs/common/patterns/index.ts");
 class NewPassUpdateDto {
 }
 exports.NewPassUpdateDto = NewPassUpdateDto;
@@ -1908,7 +2024,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PasswordRecoveryConfirmDto = void 0;
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const helpers_1 = __webpack_require__(/*! libs/helpers */ "./libs/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 class PasswordRecoveryConfirmDto {
 }
 exports.PasswordRecoveryConfirmDto = PasswordRecoveryConfirmDto;
@@ -1948,7 +2064,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PasswordRecoveryResendDto = void 0;
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const helpers_1 = __webpack_require__(/*! libs/helpers */ "./libs/helpers/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 class PasswordRecoveryResendDto {
 }
 exports.PasswordRecoveryResendDto = PasswordRecoveryResendDto;
@@ -1989,7 +2105,7 @@ exports.PasswordRecoveryDto = void 0;
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
 const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
-const patterns_1 = __webpack_require__(/*! libs/common/patterns */ "./libs/common/patterns/index.ts");
+const patterns_1 = __webpack_require__(/*! ../../../../../../libs/common/patterns */ "./libs/common/patterns/index.ts");
 class PasswordRecoveryDto {
 }
 exports.PasswordRecoveryDto = PasswordRecoveryDto;
@@ -2030,8 +2146,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ResendEmailCodeDto = void 0;
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
-const patterns_1 = __webpack_require__(/*! libs/common/patterns */ "./libs/common/patterns/index.ts");
-const helpers_1 = __webpack_require__(/*! libs/helpers */ "./libs/helpers/index.ts");
+const patterns_1 = __webpack_require__(/*! ../../../../../../libs/common/patterns */ "./libs/common/patterns/index.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
 class ResendEmailCodeDto {
 }
 exports.ResendEmailCodeDto = ResendEmailCodeDto;
@@ -2060,464 +2176,6 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], ResendEmailCodeDto.prototype, "code", void 0);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/guards/github.guard.ts":
-/*!***************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/guards/github.guard.ts ***!
-  \***************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GithubGuard = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-let GithubGuard = exports.GithubGuard = class GithubGuard extends (0, passport_1.AuthGuard)("github") {
-};
-exports.GithubGuard = GithubGuard = __decorate([
-    (0, common_1.Injectable)()
-], GithubGuard);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/guards/google.guard.ts":
-/*!***************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/guards/google.guard.ts ***!
-  \***************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GoogleGuard = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-let GoogleGuard = exports.GoogleGuard = class GoogleGuard extends (0, passport_1.AuthGuard)("google") {
-};
-exports.GoogleGuard = GoogleGuard = __decorate([
-    (0, common_1.Injectable)()
-], GoogleGuard);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/guards/index.ts":
-/*!********************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/guards/index.ts ***!
-  \********************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-__exportStar(__webpack_require__(/*! ./local.guard */ "./apps/auth-microservice/src/auth/protection/guards/local.guard.ts"), exports);
-__exportStar(__webpack_require__(/*! ./jwtAccess.guard */ "./apps/auth-microservice/src/auth/protection/guards/jwtAccess.guard.ts"), exports);
-__exportStar(__webpack_require__(/*! ./jwtRefresh.guard */ "./apps/auth-microservice/src/auth/protection/guards/jwtRefresh.guard.ts"), exports);
-__exportStar(__webpack_require__(/*! ./github.guard */ "./apps/auth-microservice/src/auth/protection/guards/github.guard.ts"), exports);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/guards/jwtAccess.guard.ts":
-/*!******************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/guards/jwtAccess.guard.ts ***!
-  \******************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.JwtAccessGuard = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-let JwtAccessGuard = exports.JwtAccessGuard = class JwtAccessGuard extends (0, passport_1.AuthGuard)("jwt") {
-};
-exports.JwtAccessGuard = JwtAccessGuard = __decorate([
-    (0, common_1.Injectable)()
-], JwtAccessGuard);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/guards/jwtRefresh.guard.ts":
-/*!*******************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/guards/jwtRefresh.guard.ts ***!
-  \*******************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.JwtRefreshGuard = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-let JwtRefreshGuard = exports.JwtRefreshGuard = class JwtRefreshGuard extends (0, passport_1.AuthGuard)("refreshToken") {
-};
-exports.JwtRefreshGuard = JwtRefreshGuard = __decorate([
-    (0, common_1.Injectable)()
-], JwtRefreshGuard);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/guards/local.guard.ts":
-/*!**************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/guards/local.guard.ts ***!
-  \**************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.LocalAuthGuard = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-let LocalAuthGuard = exports.LocalAuthGuard = class LocalAuthGuard extends (0, passport_1.AuthGuard)("local") {
-};
-exports.LocalAuthGuard = LocalAuthGuard = __decorate([
-    (0, common_1.Injectable)()
-], LocalAuthGuard);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/strategies/github.strategy.ts":
-/*!**********************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/strategies/github.strategy.ts ***!
-  \**********************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var _a;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GithubStrategy = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-const config_2 = __webpack_require__(/*! ../../../config */ "./apps/auth-microservice/src/config/index.ts");
-const passport_github2_1 = __webpack_require__(/*! passport-github2 */ "passport-github2");
-let GithubStrategy = exports.GithubStrategy = class GithubStrategy extends (0, passport_1.PassportStrategy)(passport_github2_1.Strategy) {
-    constructor(config) {
-        super({
-            clientID: config_2.CONFIG.GITHUB_CLIENT_ID,
-            clientSecret: config_2.CONFIG.GITHUB_CLIENT_SECRET,
-            callbackURL: `${config_2.CONFIG.HOST}/api/v1/auth/github/callback`,
-            scope: ["public_profile", "email"]
-        });
-        this.config = config;
-    }
-    async validate(accessToken, refreshToken, profile) {
-        return { accessToken, refreshToken, profile };
-    }
-};
-exports.GithubStrategy = GithubStrategy = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
-], GithubStrategy);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/strategies/google.strategy.ts":
-/*!**********************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/strategies/google.strategy.ts ***!
-  \**********************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var _a;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GoogleStrategy = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-const config_2 = __webpack_require__(/*! ../../../config/config */ "./apps/auth-microservice/src/config/config.ts");
-const passport_google_oauth20_1 = __webpack_require__(/*! passport-google-oauth20 */ "passport-google-oauth20");
-let GoogleStrategy = exports.GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrategy)(passport_google_oauth20_1.Strategy) {
-    constructor(config) {
-        super({
-            clientID: config_2.CONFIG.GOOGLE_CLIENT_ID,
-            clientSecret: config_2.CONFIG.GOOGLE_CLIENT_SECRET,
-            callbackURL: `${config_2.CONFIG.HOST}/api/v1/auth/google/callback`,
-            scope: ["profile", "email"]
-        });
-        this.config = config;
-    }
-    async validate(accessToken, refreshToken, profile, done) {
-        try {
-            const user = {
-                providerID: profile.id,
-                email: profile.emails[0].value,
-                username: profile.username,
-                displayName: profile.displayName,
-                provider: profile.provider,
-                photo: profile.photos[0].value,
-                accessToken,
-                refreshToken
-            };
-            done(null, user);
-        }
-        catch (err) {
-            done(err);
-            throw new common_1.UnauthorizedException(err);
-        }
-    }
-};
-exports.GoogleStrategy = GoogleStrategy = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
-], GoogleStrategy);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/strategies/index.ts":
-/*!************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/strategies/index.ts ***!
-  \************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.STRATEGIES = void 0;
-const github_strategy_1 = __webpack_require__(/*! ./github.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/github.strategy.ts");
-const google_strategy_1 = __webpack_require__(/*! ./google.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/google.strategy.ts");
-const jwtAccess_strategy_1 = __webpack_require__(/*! ./jwtAccess.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/jwtAccess.strategy.ts");
-const jwtRefresh_strategy_1 = __webpack_require__(/*! ./jwtRefresh.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/jwtRefresh.strategy.ts");
-const local_strategy_1 = __webpack_require__(/*! ./local.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/local.strategy.ts");
-__exportStar(__webpack_require__(/*! ./local.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/local.strategy.ts"), exports);
-__exportStar(__webpack_require__(/*! ./jwtAccess.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/jwtAccess.strategy.ts"), exports);
-__exportStar(__webpack_require__(/*! ./jwtRefresh.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/jwtRefresh.strategy.ts"), exports);
-__exportStar(__webpack_require__(/*! ./google.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/google.strategy.ts"), exports);
-__exportStar(__webpack_require__(/*! ./github.strategy */ "./apps/auth-microservice/src/auth/protection/strategies/github.strategy.ts"), exports);
-exports.STRATEGIES = [
-    local_strategy_1.LocalStrategy,
-    jwtAccess_strategy_1.JwtAccessStrategy,
-    jwtRefresh_strategy_1.JwtRefreshStrategy,
-    google_strategy_1.GoogleStrategy,
-    github_strategy_1.GithubStrategy
-];
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/strategies/jwtAccess.strategy.ts":
-/*!*************************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/strategies/jwtAccess.strategy.ts ***!
-  \*************************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var _a;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.JwtAccessStrategy = exports.AccessCookieExtractor = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const passport_jwt_1 = __webpack_require__(/*! passport-jwt */ "passport-jwt");
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
-const AccessCookieExtractor = function (req) {
-    let token = null;
-    if (req && req.cookies["refreshToken"]) {
-        token = passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-    }
-    return token;
-};
-exports.AccessCookieExtractor = AccessCookieExtractor;
-let JwtAccessStrategy = exports.JwtAccessStrategy = class JwtAccessStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
-    constructor(config) {
-        super({
-            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            secretOrKey: config.get("JWT_ACCESS_SECRET")
-        });
-        this.config = config;
-    }
-    async validate(payload) {
-        return { userID: payload.userID };
-    }
-};
-exports.JwtAccessStrategy = JwtAccessStrategy = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
-], JwtAccessStrategy);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/strategies/jwtRefresh.strategy.ts":
-/*!**************************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/strategies/jwtRefresh.strategy.ts ***!
-  \**************************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var _a, _b;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.JwtRefreshStrategy = void 0;
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-const passport_jwt_1 = __webpack_require__(/*! passport-jwt */ "passport-jwt");
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const auth_service_1 = __webpack_require__(/*! ../../application/auth.service */ "./apps/auth-microservice/src/auth/application/auth.service.ts");
-const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
-const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
-let JwtRefreshStrategy = exports.JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "refreshToken") {
-    constructor(config, authService) {
-        super({
-            jwtFromRequest: helpers_1.RefreshCookieExtractor,
-            ignoreExpiration: false,
-            secretOrKey: config.get("JWT_REFRESH_SECRET")
-        });
-        this.config = config;
-        this.authService = authService;
-    }
-    async validate(payload) {
-        const validateSession = await this.authService.checkedActiveSession(payload.sessionID, payload.iat);
-        if (!validateSession) {
-            throw new common_1.UnauthorizedException("Unable to logout");
-        }
-        return { userID: payload.userID, sessionID: payload.sessionID };
-    }
-};
-exports.JwtRefreshStrategy = JwtRefreshStrategy = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _b : Object])
-], JwtRefreshStrategy);
-
-
-/***/ }),
-
-/***/ "./apps/auth-microservice/src/auth/protection/strategies/local.strategy.ts":
-/*!*********************************************************************************!*\
-  !*** ./apps/auth-microservice/src/auth/protection/strategies/local.strategy.ts ***!
-  \*********************************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var _a;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.LocalStrategy = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-const passport_local_1 = __webpack_require__(/*! passport-local */ "passport-local");
-const auth_service_1 = __webpack_require__(/*! ../../application/auth.service */ "./apps/auth-microservice/src/auth/application/auth.service.ts");
-let LocalStrategy = exports.LocalStrategy = class LocalStrategy extends (0, passport_1.PassportStrategy)(passport_local_1.Strategy) {
-    constructor(authService) {
-        super({
-            usernameField: "email"
-        });
-        this.authService = authService;
-    }
-    async validate(email, password) {
-        const payload = await this.authService.validateLogin(email, password);
-        return { userID: payload.userID };
-    }
-};
-exports.LocalStrategy = LocalStrategy = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _a : Object])
-], LocalStrategy);
 
 
 /***/ }),
@@ -2617,7 +2275,7 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
             .create({
             data: {
                 code: (0, uuid_1.v4)(),
-                expiresIn: (0, date_fns_1.add)(new Date(), { minutes: 10 }),
+                expiresIn: (0, date_fns_1.add)(new Date(), { minutes: 5 }),
                 userID
             }
         })
@@ -2659,23 +2317,6 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
     async deleteSession({ sessionID }) {
         return Boolean(await this.prisma.sessions.delete({ where: { id: sessionID } }));
     }
-    async googleRegister(dto) {
-        const googleProfile = await this.prisma.googleProfile
-            .create({
-            data: {
-                providerID: dto.providerID,
-                email: dto.email,
-                username: dto.username,
-                provider: dto.provider,
-                displayName: dto.displayName || null,
-                userID: dto.userID
-            }
-        })
-            .catch((err) => this.logger.error((0, colorette_1.red)(err)));
-        if (!googleProfile)
-            throw new common_1.InternalServerErrorException("Unable to create new Google Profile");
-        return googleProfile;
-    }
     async confirmUserEmail({ userId }) {
         return Boolean(await this.prisma.user.update({
             where: { id: userId },
@@ -2685,7 +2326,17 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
     async createGoogleProfile(dto) {
         const googleProfile = await this.prisma.googleProfile
             .create({
-            data: dto
+            data: {
+                providerID: dto.providerID,
+                email: dto.email,
+                familyName: dto.familyName,
+                givenName: dto.givenName,
+                name: dto.name,
+                picture: dto.picture,
+                isConfirmed: dto.isConfirmed,
+                locale: dto.locale,
+                userID: dto.userID
+            }
         })
             .catch((err) => this.logger.error((0, colorette_1.red)(err)));
         if (googleProfile) {
@@ -2726,6 +2377,44 @@ let AuthRepository = exports.AuthRepository = AuthRepository_1 = class AuthRepos
     async findUniqueGoogleProfileByUserID({ userID }) {
         return this.prisma.googleProfile.findUnique({ where: { userID } });
     }
+    async findUniqueGithubProfileByProviderID({ providerID }) {
+        return this.prisma.githubProfile.findUnique({ where: { providerID } });
+    }
+    async findUniqueGithubProfileByUserID({ userID }) {
+        return this.prisma.githubProfile.findUnique({ where: { userID } });
+    }
+    async createGithubProfile(data) {
+        const githubProfile = await this.prisma.githubProfile
+            .create({
+            data: {
+                providerID: data.node_id,
+                email: data.email,
+                username: data.login,
+                location: data.location,
+                name: data.name,
+                userID: data.userID
+            }
+        })
+            .catch((err) => this.logger.error((0, colorette_1.red)(err)));
+        if (!githubProfile)
+            throw new common_1.InternalServerErrorException("Unable to create github profile");
+        return githubProfile;
+    }
+    async genUniqueUsername({ pref }) {
+        let isUsernameTaken;
+        let uniqueUsername = pref;
+        let suffix = 1;
+        do {
+            isUsernameTaken = await this.checkIsUniqueUsername({
+                username: uniqueUsername
+            });
+            if (isUsernameTaken) {
+                uniqueUsername = `${pref}-${suffix}`;
+                suffix++;
+            }
+        } while (isUsernameTaken);
+        return uniqueUsername;
+    }
 };
 exports.AuthRepository = AuthRepository = AuthRepository_1 = __decorate([
     (0, common_1.Injectable)(),
@@ -2759,6 +2448,453 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__webpack_require__(/*! ./auth.repository */ "./apps/auth-microservice/src/auth/repositories/auth.repository.ts"), exports);
 __exportStar(__webpack_require__(/*! ./auth-query.repository */ "./apps/auth-microservice/src/auth/repositories/auth-query.repository.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/guards/github.guard.ts":
+/*!*************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/guards/github.guard.ts ***!
+  \*************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GithubGuard = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+let GithubGuard = exports.GithubGuard = class GithubGuard extends (0, passport_1.AuthGuard)("github") {
+};
+exports.GithubGuard = GithubGuard = __decorate([
+    (0, common_1.Injectable)()
+], GithubGuard);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/guards/google.guard.ts":
+/*!*************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/guards/google.guard.ts ***!
+  \*************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoogleGuard = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+let GoogleGuard = exports.GoogleGuard = class GoogleGuard extends (0, passport_1.AuthGuard)("google") {
+};
+exports.GoogleGuard = GoogleGuard = __decorate([
+    (0, common_1.Injectable)()
+], GoogleGuard);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/guards/index.ts":
+/*!******************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/guards/index.ts ***!
+  \******************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__webpack_require__(/*! ./local.guard */ "./apps/auth-microservice/src/auth/security/guards/local.guard.ts"), exports);
+__exportStar(__webpack_require__(/*! ./jwtAccess.guard */ "./apps/auth-microservice/src/auth/security/guards/jwtAccess.guard.ts"), exports);
+__exportStar(__webpack_require__(/*! ./jwtRefresh.guard */ "./apps/auth-microservice/src/auth/security/guards/jwtRefresh.guard.ts"), exports);
+__exportStar(__webpack_require__(/*! ./github.guard */ "./apps/auth-microservice/src/auth/security/guards/github.guard.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/guards/jwtAccess.guard.ts":
+/*!****************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/guards/jwtAccess.guard.ts ***!
+  \****************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtAccessGuard = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+let JwtAccessGuard = exports.JwtAccessGuard = class JwtAccessGuard extends (0, passport_1.AuthGuard)("jwt") {
+};
+exports.JwtAccessGuard = JwtAccessGuard = __decorate([
+    (0, common_1.Injectable)()
+], JwtAccessGuard);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/guards/jwtRefresh.guard.ts":
+/*!*****************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/guards/jwtRefresh.guard.ts ***!
+  \*****************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtRefreshGuard = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+let JwtRefreshGuard = exports.JwtRefreshGuard = class JwtRefreshGuard extends (0, passport_1.AuthGuard)("refreshToken") {
+};
+exports.JwtRefreshGuard = JwtRefreshGuard = __decorate([
+    (0, common_1.Injectable)()
+], JwtRefreshGuard);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/guards/local.guard.ts":
+/*!************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/guards/local.guard.ts ***!
+  \************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LocalAuthGuard = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+let LocalAuthGuard = exports.LocalAuthGuard = class LocalAuthGuard extends (0, passport_1.AuthGuard)("local") {
+};
+exports.LocalAuthGuard = LocalAuthGuard = __decorate([
+    (0, common_1.Injectable)()
+], LocalAuthGuard);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/strategies/github.strategy.ts":
+/*!********************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/strategies/github.strategy.ts ***!
+  \********************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GithubStrategy = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+const config_2 = __webpack_require__(/*! ../../../config */ "./apps/auth-microservice/src/config/index.ts");
+const passport_github2_1 = __webpack_require__(/*! passport-github2 */ "passport-github2");
+let GithubStrategy = exports.GithubStrategy = class GithubStrategy extends (0, passport_1.PassportStrategy)(passport_github2_1.Strategy) {
+    constructor(config) {
+        super({
+            clientID: config_2.CONFIG.GITHUB_CLIENT_ID,
+            clientSecret: config_2.CONFIG.GITHUB_CLIENT_SECRET,
+            callbackURL: `${config_2.CONFIG.HOST}/api/v1/auth/github/callback`,
+            scope: ["public_profile", "email"]
+        });
+        this.config = config;
+    }
+    async validate(accessToken) {
+        return { accessToken };
+    }
+};
+exports.GithubStrategy = GithubStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+], GithubStrategy);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/strategies/google.strategy.ts":
+/*!********************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/strategies/google.strategy.ts ***!
+  \********************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoogleStrategy = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+const config_2 = __webpack_require__(/*! ../../../config/config */ "./apps/auth-microservice/src/config/config.ts");
+const passport_google_oauth20_1 = __webpack_require__(/*! passport-google-oauth20 */ "passport-google-oauth20");
+let GoogleStrategy = exports.GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrategy)(passport_google_oauth20_1.Strategy) {
+    constructor(config) {
+        super({
+            clientID: config_2.CONFIG.GOOGLE_CLIENT_ID,
+            clientSecret: config_2.CONFIG.GOOGLE_CLIENT_SECRET,
+            callbackURL: `${config_2.CONFIG.HOST}/api/v1/auth/google/callback`,
+            scope: ["profile", "email"]
+        });
+        this.config = config;
+    }
+    async validate(accessToken) {
+        try {
+            return { accessToken };
+        }
+        catch (err) {
+            throw new common_1.UnauthorizedException(err);
+        }
+    }
+};
+exports.GoogleStrategy = GoogleStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+], GoogleStrategy);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/strategies/index.ts":
+/*!**********************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/strategies/index.ts ***!
+  \**********************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.STRATEGIES = void 0;
+const github_strategy_1 = __webpack_require__(/*! ./github.strategy */ "./apps/auth-microservice/src/auth/security/strategies/github.strategy.ts");
+const google_strategy_1 = __webpack_require__(/*! ./google.strategy */ "./apps/auth-microservice/src/auth/security/strategies/google.strategy.ts");
+const jwtAccess_strategy_1 = __webpack_require__(/*! ./jwtAccess.strategy */ "./apps/auth-microservice/src/auth/security/strategies/jwtAccess.strategy.ts");
+const jwtRefresh_strategy_1 = __webpack_require__(/*! ./jwtRefresh.strategy */ "./apps/auth-microservice/src/auth/security/strategies/jwtRefresh.strategy.ts");
+const local_strategy_1 = __webpack_require__(/*! ./local.strategy */ "./apps/auth-microservice/src/auth/security/strategies/local.strategy.ts");
+__exportStar(__webpack_require__(/*! ./local.strategy */ "./apps/auth-microservice/src/auth/security/strategies/local.strategy.ts"), exports);
+__exportStar(__webpack_require__(/*! ./jwtAccess.strategy */ "./apps/auth-microservice/src/auth/security/strategies/jwtAccess.strategy.ts"), exports);
+__exportStar(__webpack_require__(/*! ./jwtRefresh.strategy */ "./apps/auth-microservice/src/auth/security/strategies/jwtRefresh.strategy.ts"), exports);
+__exportStar(__webpack_require__(/*! ./google.strategy */ "./apps/auth-microservice/src/auth/security/strategies/google.strategy.ts"), exports);
+__exportStar(__webpack_require__(/*! ./github.strategy */ "./apps/auth-microservice/src/auth/security/strategies/github.strategy.ts"), exports);
+exports.STRATEGIES = [
+    local_strategy_1.LocalStrategy,
+    jwtAccess_strategy_1.JwtAccessStrategy,
+    jwtRefresh_strategy_1.JwtRefreshStrategy,
+    google_strategy_1.GoogleStrategy,
+    github_strategy_1.GithubStrategy
+];
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/strategies/jwtAccess.strategy.ts":
+/*!***********************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/strategies/jwtAccess.strategy.ts ***!
+  \***********************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtAccessStrategy = exports.AccessCookieExtractor = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_jwt_1 = __webpack_require__(/*! passport-jwt */ "passport-jwt");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const AccessCookieExtractor = function (req) {
+    let token = null;
+    if (req && req.cookies["refreshToken"]) {
+        token = passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    }
+    return token;
+};
+exports.AccessCookieExtractor = AccessCookieExtractor;
+let JwtAccessStrategy = exports.JwtAccessStrategy = class JwtAccessStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
+    constructor(config) {
+        super({
+            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
+            ignoreExpiration: false,
+            secretOrKey: config.get("JWT_ACCESS_SECRET")
+        });
+        this.config = config;
+    }
+    async validate(payload) {
+        return { userID: payload.userID };
+    }
+};
+exports.JwtAccessStrategy = JwtAccessStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+], JwtAccessStrategy);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/strategies/jwtRefresh.strategy.ts":
+/*!************************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/strategies/jwtRefresh.strategy.ts ***!
+  \************************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtRefreshStrategy = void 0;
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+const passport_jwt_1 = __webpack_require__(/*! passport-jwt */ "passport-jwt");
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const auth_service_1 = __webpack_require__(/*! ../../application/auth.service */ "./apps/auth-microservice/src/auth/application/auth.service.ts");
+const helpers_1 = __webpack_require__(/*! ../../../../../../libs/helpers */ "./libs/helpers/index.ts");
+const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+let JwtRefreshStrategy = exports.JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "refreshToken") {
+    constructor(config, authService) {
+        super({
+            jwtFromRequest: helpers_1.RefreshCookieExtractor,
+            ignoreExpiration: false,
+            secretOrKey: config.get("JWT_REFRESH_SECRET")
+        });
+        this.config = config;
+        this.authService = authService;
+    }
+    async validate(payload) {
+        const validateSession = await this.authService.checkedActiveSession(payload.sessionID, payload.iat);
+        if (!validateSession) {
+            throw new common_1.UnauthorizedException();
+        }
+        return { userID: payload.userID, sessionID: payload.sessionID };
+    }
+};
+exports.JwtRefreshStrategy = JwtRefreshStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _b : Object])
+], JwtRefreshStrategy);
+
+
+/***/ }),
+
+/***/ "./apps/auth-microservice/src/auth/security/strategies/local.strategy.ts":
+/*!*******************************************************************************!*\
+  !*** ./apps/auth-microservice/src/auth/security/strategies/local.strategy.ts ***!
+  \*******************************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LocalStrategy = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
+const passport_local_1 = __webpack_require__(/*! passport-local */ "passport-local");
+const auth_service_1 = __webpack_require__(/*! ../../application/auth.service */ "./apps/auth-microservice/src/auth/application/auth.service.ts");
+let LocalStrategy = exports.LocalStrategy = class LocalStrategy extends (0, passport_1.PassportStrategy)(passport_local_1.Strategy) {
+    constructor(authService) {
+        super({
+            usernameField: "email"
+        });
+        this.authService = authService;
+    }
+    async validate(email, password) {
+        const payload = await this.authService.validateLogin(email, password);
+        return { userID: payload.userID };
+    }
+};
+exports.LocalStrategy = LocalStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _a : Object])
+], LocalStrategy);
 
 
 /***/ }),
@@ -2941,42 +3077,6 @@ exports.PrismaService = PrismaService = __decorate([
 
 /***/ }),
 
-/***/ "./libs/common/decorators/github-payload.decorator.ts":
-/*!************************************************************!*\
-  !*** ./libs/common/decorators/github-payload.decorator.ts ***!
-  \************************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GithubPayloadDecorator = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-exports.GithubPayloadDecorator = (0, common_1.createParamDecorator)((key, ctx) => {
-    const req = ctx.switchToHttp().getRequest();
-    return key ? req.user[key] : req.user;
-});
-
-
-/***/ }),
-
-/***/ "./libs/common/decorators/google-payload.decorator.ts":
-/*!************************************************************!*\
-  !*** ./libs/common/decorators/google-payload.decorator.ts ***!
-  \************************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GooglePayloadDecorator = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-exports.GooglePayloadDecorator = (0, common_1.createParamDecorator)((key, ctx) => {
-    const req = ctx.switchToHttp().getRequest();
-    return key ? req.user[key] : req.user;
-});
-
-
-/***/ }),
-
 /***/ "./libs/common/decorators/index.ts":
 /*!*****************************************!*\
   !*** ./libs/common/decorators/index.ts ***!
@@ -2999,9 +3099,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-__exportStar(__webpack_require__(/*! ./google-payload.decorator */ "./libs/common/decorators/google-payload.decorator.ts"), exports);
 __exportStar(__webpack_require__(/*! ./user-agent.decorator */ "./libs/common/decorators/user-agent.decorator.ts"), exports);
-__exportStar(__webpack_require__(/*! ./github-payload.decorator */ "./libs/common/decorators/github-payload.decorator.ts"), exports);
 
 
 /***/ }),

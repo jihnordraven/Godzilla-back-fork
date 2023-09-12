@@ -23,6 +23,7 @@ model User {
   Profile          Profile?
   Sessions         Sessions[]
   GoogleProfile    GoogleProfile?
+  GithubProfile    GithubProfile?
 
   isDeleted Boolean  @default(false) @map("is_deleted")
   createdAt DateTime @default(now()) @map("created_at")
@@ -34,10 +35,13 @@ model User {
 model GoogleProfile {
   id          String  @id @unique @default(uuid())
   providerID  String  @unique @map("provider_id")
-  username    String  @unique
+  name        String?
+  givenName   String? @map("given_name")
+  familyName  String? @map("family_name")
+  picture     String?
   email       String  @unique
-  displayName String? @map("display_name")
-  provider    String
+  isConfirmed Boolean @map("is_confirmed")
+  locale      String?
   userID      String  @unique @map("user_id")
   user        User    @relation(fields: [userID], references: [id], onDelete: Cascade)
 
@@ -45,6 +49,22 @@ model GoogleProfile {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("google_profiles")
+}
+
+model GithubProfile {
+  id         String  @id @unique @default(uuid())
+  providerID String  @unique @map("provider_id")
+  username   String  @unique
+  email      String  @unique
+  name       String?
+  location   String?
+  userID     String  @unique @map("user_id")
+  user       User    @relation(fields: [userID], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("github_profiles")
 }
 
 model EmailCode {

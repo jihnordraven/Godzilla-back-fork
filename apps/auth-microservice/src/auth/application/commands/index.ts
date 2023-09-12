@@ -1,5 +1,6 @@
 import { ConfirmEmailHandler } from "./confirm-email.command"
 import { ConfirmPasswordRecoveryHandler } from "./confirm-password-recovery.command"
+import { GithubRegisterHandler } from "./github-register.command"
 import { GoogleRegisterHandler } from "./google-register.command"
 import { LocalRegisterHandler } from "./local-register.command"
 import { LoginHandler } from "./login.command"
@@ -16,9 +17,10 @@ export * from "./password-recovery.command"
 export * from "./new-password.command"
 export * from "./password-recovery-resend.command"
 export * from "./logout.command"
-export * from "./google-register.command"
 export * from "./confirm-email.command"
 export * from "./confirm-password-recovery.command"
+export * from "./google-register.command"
+export * from "./github-register.command"
 
 export const AUTH_COMMAND_HANDLERS = [
 	LocalRegisterHandler,
@@ -29,6 +31,7 @@ export const AUTH_COMMAND_HANDLERS = [
 	NewPasswordHandler,
 	PasswordRecoveryResendHandler,
 	LogoutHandler,
+	ConfirmPasswordRecoveryHandler,
 	GoogleRegisterHandler,
-	ConfirmPasswordRecoveryHandler
+	GithubRegisterHandler
 ]

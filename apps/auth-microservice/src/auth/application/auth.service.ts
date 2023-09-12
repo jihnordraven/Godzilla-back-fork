@@ -1,12 +1,20 @@
 import { ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common"
 import { AuthRepository } from "../repositories"
 import { JwtAccessPayload } from "../../../../../libs/helpers"
-import { AuthObjectType, TokensObjectType } from "../core/models"
+import { AuthObjectType, LoginResType, TokensObjectType } from "../core/models"
 import { CommandBus } from "@nestjs/cqrs"
-import { GoogleRegisterCommand, LoginCommand, LogoutCommand } from "./commands"
+import { GithubRegisterCommand, LoginCommand, LogoutCommand } from "./commands"
 import { BcryptAdapter } from "../../adapters"
-import { ConfirmEmailStatusEnum, GoogleProfile, Sessions, User } from "@prisma/client"
-import { IGoogleUser } from "../protection/strategies"
+import {
+	ConfirmEmailStatusEnum,
+	GithubProfile,
+	GoogleProfile,
+	Sessions,
+	User
+} from "@prisma/client"
+import { GoogleRegisterDto } from "../core/dto/google-register.dto"
+import { GoogleRegisterCommand } from "./commands/google-register.command"
+import { GithubRegisterDto } from "../core/dto/github-register.dto"
 
 @Injectable()
 export class AuthService {
@@ -16,7 +24,7 @@ export class AuthService {
 		protected readonly bcrypt: BcryptAdapter
 	) {}
 
-	async validateLogin(email: string, password: string): Promise<JwtAccessPayload | null> {
+	public async validateLogin(email: string, password: string): Promise<JwtAccessPayload | null> {
 		const user: User | null = await this.authRepository.findUniqueUserByEmail({ email })
 		if (!user) {
 			throw new UnauthorizedException("Invalid login or password")
@@ -38,7 +46,7 @@ export class AuthService {
 		return { userID: user.id }
 	}
 
-	async refreshFlow(
+	public async refreshFlow(
 		authObjectDTO: AuthObjectType,
 		userID: string,
 		sessionID: string
@@ -48,7 +56,10 @@ export class AuthService {
 		return this.commandBus.execute(new LoginCommand(authObjectDTO))
 	}
 
-	async checkedActiveSession(sessionID: string, expiredSecondsToken: number): Promise<boolean> {
+	public async checkedActiveSession(
+		sessionID: string,
+		expiredSecondsToken: number
+	): Promise<boolean> {
 		console.log(sessionID, expiredSecondsToken)
 		if (!sessionID) {
 			return false
@@ -69,35 +80,47 @@ export class AuthService {
 		return true
 	}
 
-	async checkedEmailToBase(email: string): Promise<boolean> {
+	public async checkedEmailToBase(email: string): Promise<boolean> {
 		console.log(email)
 		return false
 	}
 
-	async checkedConfirmCode(code: string): Promise<boolean> {
+	public async checkedConfirmCode(code: string): Promise<boolean> {
 		console.log(code)
 		return false
 	}
 
-	async checkedUniqueUsername(userName: string): Promise<boolean> {
+	public async checkedUniqueUsername(userName: string): Promise<boolean> {
 		console.log(userName)
 		return false
 	}
 
-	async checkedUniqueEmail(email: string): Promise<boolean> {
+	public async checkedUniqueEmail(email: string): Promise<boolean> {
 		console.log(email)
 		return false
 	}
 
-	async googleRegister(
-		dto: IGoogleUser,
-		{ userIP, userAgent }: { userIP: string; userAgent: string }
+	public async googleRegister(
+		dto: GoogleRegisterDto,
+		{ userAgent, userIP }: { userAgent: string; userIP: string }
 	): Promise<TokensObjectType> {
 		const googleProfile: GoogleProfile = await this.commandBus.execute(
 			new GoogleRegisterCommand(dto)
 		)
 		return this.commandBus.execute(
-			new LoginCommand({ userIP, userAgent, userID: googleProfile.userID })
+			new LoginCommand({ userID: googleProfile.userID, userAgent, userIP })
+		)
+	}
+
+	public async githubRegister(
+		dto: GithubRegisterDto,
+		{ userAgent, userIP }: { userAgent: string; userIP: string }
+	): Promise<TokensObjectType> {
+		const githubProfile: GithubProfile = await this.commandBus.execute(
+			new GithubRegisterCommand(dto)
+		)
+		return this.commandBus.execute(
+			new LoginCommand({ userID: githubProfile.userID, userAgent, userIP })
 		)
 	}
 }

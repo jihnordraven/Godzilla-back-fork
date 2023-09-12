@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import { PassportStrategy } from "@nestjs/passport"
 import { CONFIG } from "../../../config"
-import { Profile, Strategy } from "passport-github2"
+import { Strategy } from "passport-github2"
 
 @Injectable()
 export class GithubStrategy extends PassportStrategy(Strategy) {
@@ -16,10 +16,10 @@ export class GithubStrategy extends PassportStrategy(Strategy) {
 	}
 
 	async validate(
-		accessToken: string,
-		refreshToken: string | null,
-		profile: Profile
+		accessToken: string
+		// refreshToken: string | null,
+		// profile: Profile
 	): Promise<any> {
-		return { accessToken, refreshToken, profile }
+		return { accessToken }
 	}
 }

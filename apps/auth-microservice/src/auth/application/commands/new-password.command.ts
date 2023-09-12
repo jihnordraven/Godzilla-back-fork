@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
 import { NewPassUpdateDto } from "../../core/dto"
 import { AuthRepository } from "../../repositories"
 import { EmailCode, User } from "@prisma/client"
-import { BadRequestException } from "@nestjs/common"
+import { BadRequestException, ForbiddenException } from "@nestjs/common"
 import { BcryptAdapter } from "../../../adapters"
 
 export class NewPasswordCommand {
@@ -22,6 +22,8 @@ export class NewPasswordHandler implements ICommandHandler<NewPasswordCommand> {
 		})
 
 		if (!emailCode) throw new BadRequestException("Invalid code")
+
+		if (emailCode.isUsed) throw new ForbiddenException("Code has already been used")
 
 		const user: User | null = await this.authRepository.findUniqueUserByID({
 			userID: emailCode.userID

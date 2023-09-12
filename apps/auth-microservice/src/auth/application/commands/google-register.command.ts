@@ -1,43 +1,40 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs"
-import { IGoogleUser } from "../../protection/strategies"
 import { AuthRepository } from "../../repositories/auth.repository"
 import { GoogleProfile, User } from "@prisma/client"
 import { CreateGoogleProfileType } from "../../core/models"
-import { AuthQueryRepository } from "../../repositories"
+import { GoogleRegisterDto } from "../../core/dto/google-register.dto"
 
 export class GoogleRegisterCommand {
-	constructor(public readonly dto: IGoogleUser) {}
+	constructor(public readonly dto: GoogleRegisterDto) {}
 }
 
 @CommandHandler(GoogleRegisterCommand)
 export class GoogleRegisterHandler implements ICommandHandler<GoogleRegisterCommand> {
-	constructor(
-		protected readonly authRepository: AuthRepository,
-		private readonly authQueryRepository: AuthQueryRepository
-	) {}
+	constructor(protected readonly authRepository: AuthRepository) {}
 
 	public async execute({ dto }: GoogleRegisterCommand): Promise<GoogleProfile> {
 		// helpers
 		const createGoogleProfileData = ({
-			userID,
-			username
+			userID
 		}: {
 			userID: string
-			username: string
 		}): CreateGoogleProfileType => {
 			return {
-				providerID: dto.providerID,
+				providerID: dto.sub,
 				email: dto.email,
-				username,
-				displayName: dto.displayName,
-				provider: dto.provider,
+				name: dto.name,
+				givenName: dto.given_name,
+				familyName: dto.family_name,
+				picture: dto.picture,
+				isConfirmed: dto.email_verified,
+				locale: dto.locale,
 				userID
 			}
 		}
 		// helpers
 		const googleProfile: GoogleProfile | null =
 			await this.authRepository.findUniqueGoogleProfileByProviderID({
-				providerID: dto.providerID
+				providerID: dto.sub
 			})
 
 		if (googleProfile) return googleProfile
@@ -46,62 +43,25 @@ export class GoogleRegisterHandler implements ICommandHandler<GoogleRegisterComm
 			email: dto.email
 		})
 
+		const uniqueUsername: string = await this.authRepository.genUniqueUsername({
+			pref: "google-"
+		})
+
 		if (user) {
 			const googleProfile: GoogleProfile | null =
 				await this.authRepository.findUniqueGoogleProfileByUserID({ userID: user.id })
 			if (googleProfile) return googleProfile
 			const googleProfileData: CreateGoogleProfileType = createGoogleProfileData({
-				userID: user.id,
-				username: user.username
-			})
-			return this.authRepository.createGoogleProfile(googleProfileData)
-		}
-		if (dto.username) {
-			let isUsernameTaken: boolean
-			let uniqueUsername: string = dto.username
-			let suffix: number = 1
-			// check is username unique
-			do {
-				isUsernameTaken = await this.authRepository.checkIsUniqueUsername({
-					username: uniqueUsername
-				})
-				if (isUsernameTaken) {
-					uniqueUsername = `${dto.username}_${suffix}`
-					suffix++
-				}
-			} while (isUsernameTaken)
-			// check is username unique
-			const user: User = await this.authRepository.localRegister({
-				email: dto.email,
-				username: uniqueUsername
-			})
-			const googleProfileData: CreateGoogleProfileType = createGoogleProfileData({
-				userID: user.id,
-				username: uniqueUsername
+				userID: user.id
 			})
 			return this.authRepository.createGoogleProfile(googleProfileData)
 		} else {
-			let isUsernameTaken: boolean
-			let uniqueUsername: string = "google-client_1"
-			let suffix: number = 1
-			// check is username unique
-			do {
-				isUsernameTaken = await this.authRepository.checkIsUniqueUsername({
-					username: uniqueUsername
-				})
-				if (isUsernameTaken) {
-					uniqueUsername = `google-client_${suffix}`
-					suffix++
-				}
-			} while (isUsernameTaken)
-			// check is username unique
-			const user: User = await this.authRepository.localRegister({
+			const newUser: User = await this.authRepository.localRegister({
 				email: dto.email,
 				username: uniqueUsername
 			})
 			const googleProfileData: CreateGoogleProfileType = createGoogleProfileData({
-				userID: user.id,
-				username: uniqueUsername
+				userID: newUser.id
 			})
 			return this.authRepository.createGoogleProfile(googleProfileData)
 		}

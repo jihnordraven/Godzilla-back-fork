@@ -44,7 +44,7 @@ export class LocalRegisterHandler implements ICommandHandler<LocalRegisterComman
 				username
 			})
 			if (isUsername)
-				throw new HandleException({
+				HandleException({
 					message: "User with this username is already registered",
 					field: "username",
 					error: "Conflict",

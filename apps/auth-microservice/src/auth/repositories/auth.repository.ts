@@ -3,10 +3,18 @@ import { PrismaService } from "../../prisma/prisma.service"
 import {
 	AuthObjectType,
 	CreateEmailCodeType,
+	CreateGithubProfileType,
 	CreateGoogleProfileType,
 	LocalRegisterType
 } from "../core/models"
-import { ConfirmEmailStatusEnum, EmailCode, GoogleProfile, Sessions, User } from "@prisma/client"
+import {
+	ConfirmEmailStatusEnum,
+	EmailCode,
+	GithubProfile,
+	GoogleProfile,
+	Sessions,
+	User
+} from "@prisma/client"
 import { red } from "colorette"
 import { v4 } from "uuid"
 import { add } from "date-fns"
@@ -36,7 +44,7 @@ export class AuthRepository {
 			.create({
 				data: {
 					code: v4(),
-					expiresIn: add(new Date(), { minutes: 10 }),
+					expiresIn: add(new Date(), { minutes: 5 }),
 					userID
 				}
 			})
@@ -90,23 +98,23 @@ export class AuthRepository {
 		return Boolean(await this.prisma.sessions.delete({ where: { id: sessionID } }))
 	}
 
-	public async googleRegister(dto: CreateGoogleProfileType): Promise<GoogleProfile> {
-		const googleProfile: GoogleProfile | void = await this.prisma.googleProfile
-			.create({
-				data: {
-					providerID: dto.providerID,
-					email: dto.email,
-					username: dto.username,
-					provider: dto.provider,
-					displayName: dto.displayName || null,
-					userID: dto.userID
-				}
-			})
-			.catch((err: string) => this.logger.error(red(err)))
-		if (!googleProfile)
-			throw new InternalServerErrorException("Unable to create new Google Profile")
-		return googleProfile
-	}
+	// public async googleRegister(dto: CreateGoogleProfileType): Promise<GoogleProfile> {
+	// 	const googleProfile: GoogleProfile | void = await this.prisma.googleProfile
+	// 		.create({
+	// 			data: {
+	// 				providerID: dto.providerID,
+	// 				email: dto.email,
+	// 				username: dto.username,
+	// 				provider: dto.provider,
+	// 				displayName: dto.displayName || null,
+	// 				userID: dto.userID
+	// 			}
+	// 		})
+	// 		.catch((err: string) => this.logger.error(red(err)))
+	// 	if (!googleProfile)
+	// 		throw new InternalServerErrorException("Unable to create new Google Profile")
+	// 	return googleProfile
+	// }
 
 	public async confirmUserEmail({ userId }: { userId: string }): Promise<boolean> {
 		return Boolean(
@@ -120,7 +128,17 @@ export class AuthRepository {
 	public async createGoogleProfile(dto: CreateGoogleProfileType): Promise<GoogleProfile> {
 		const googleProfile: GoogleProfile | void = await this.prisma.googleProfile
 			.create({
-				data: dto
+				data: {
+					providerID: dto.providerID,
+					email: dto.email,
+					familyName: dto.familyName,
+					givenName: dto.givenName,
+					name: dto.name,
+					picture: dto.picture,
+					isConfirmed: dto.isConfirmed,
+					locale: dto.locale,
+					userID: dto.userID
+				}
 			})
 			.catch((err) => this.logger.error(red(err)))
 		if (googleProfile) {
@@ -174,5 +192,56 @@ export class AuthRepository {
 		userID: string
 	}): Promise<GoogleProfile | null> {
 		return this.prisma.googleProfile.findUnique({ where: { userID } })
+	}
+
+	public async findUniqueGithubProfileByProviderID({
+		providerID
+	}: {
+		providerID: string
+	}): Promise<GithubProfile | null> {
+		return this.prisma.githubProfile.findUnique({ where: { providerID } })
+	}
+
+	public async findUniqueGithubProfileByUserID({
+		userID
+	}: {
+		userID: string
+	}): Promise<GithubProfile | null> {
+		return this.prisma.githubProfile.findUnique({ where: { userID } })
+	}
+
+	public async createGithubProfile(data: CreateGithubProfileType): Promise<GithubProfile> {
+		const githubProfile: GithubProfile | void = await this.prisma.githubProfile
+			.create({
+				data: {
+					providerID: data.node_id,
+					email: data.email,
+					username: data.login,
+					location: data.location,
+					name: data.name,
+					userID: data.userID
+				}
+			})
+			.catch((err: string) => this.logger.error(red(err)))
+		if (!githubProfile)
+			throw new InternalServerErrorException("Unable to create github profile")
+		return githubProfile
+	}
+
+	// helpers
+	public async genUniqueUsername({ pref }: { pref: string }): Promise<string> {
+		let isUsernameTaken: boolean
+		let uniqueUsername: string = pref
+		let suffix: number = 1
+		do {
+			isUsernameTaken = await this.checkIsUniqueUsername({
+				username: uniqueUsername
+			})
+			if (isUsernameTaken) {
+				uniqueUsername = `${pref}-${suffix}`
+				suffix++
+			}
+		} while (isUsernameTaken)
+		return uniqueUsername
 	}
 }
